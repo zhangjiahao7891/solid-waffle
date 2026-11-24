@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>穷小子打工记</title>
+<style>
+  :root{
+    --bg1:#1a1a2e; --bg2:#16213e; --accent:#ffb347; --accent2:#ff8c42;
+    --green:#5cb85c; --red:#e05c5c; --gold:#ffd166; --text:#f5f5f5; --muted:#aab;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--text);background:var(--bg1);-webkit-user-select:none;user-select:none;}
+
+  /* ============ 登录界面 ============ */
+  #authScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 20%, #2b3a67 0%, #16213e 45%, #0f0f1e 100%);overflow:auto;z-index:50;}
+  .auth-card{width:min(440px,92vw);background:rgba(255,255,255,.06);backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:pop .4s ease;}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .logo{text-align:center;margin-bottom:18px;}
+  .logo h1{font-size:30px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#ffd166,#ff8c42,#ff5e62);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .logo p{color:var(--muted);font-size:13px;margin-top:6px;}
+  .tabs{display:flex;background:rgba(0,0,0,.25);border-radius:12px;padding:4px;margin-bottom:20px;}
+  .tabs button{flex:1;padding:10px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:15px;font-weight:700;cursor:pointer;transition:.2s;}
+  .tabs button.active{background:var(--accent);color:#1a1a2e;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .field input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:var(--text);font-size:15px;outline:none;transition:.2s;}
+  .field input:focus{border-color:var(--accent);background:rgba(0,0,0,.45);}
+  .field input::placeholder{color:#667;}
+  .btn{width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#1a1a2e;font-size:16px;font-weight:800;cursor:pointer;transition:.15s;margin-top:4px;}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.05);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--text);font-weight:600;font-size:14px;}
+  .link{display:block;text-align:center;margin-top:14px;color:var(--accent);font-size:13px;cursor:pointer;}
+  .link:hover{text-decoration:underline;}
+  .msg{min-height:20px;font-size:13px;text-align:center;margin-top:12px;color:var(--red);}
+  .msg.ok{color:var(--green);}
+  .hint{font-size:12px;color:var(--muted);line-height:1.7;margin-top:16px;border-top:1px dashed rgba(255,255,255,.15);padding-top:12px;}
+  .hidden{display:none !important;}
+
+  /* ============ 游戏界面 ============ */
+  #gameScreen{position:fixed;inset:0;background:#2e5d3a;z-index:10;}
+  #gameCanvas{position:absolute;inset:0;display:block;}
+
+  #hud{position:absolute;top:12px;left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;z-index:20;pointer-events:none;}
+  .hud-pill{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:700;backdrop-filter:blur(4px);}
+  .hud-pill .ico{font-size:16px;}
+  .hud-pill.gems{color:#7ee081;}
+  .hud-pill.hunger{color:#ffb347;}
+  .hud-pill.hp{color:#ff7e7e;}
+  .bar{width:90px;height:8px;background:rgba(0,0,0,.5);border-radius:999px;overflow:hidden;}
+  .bar>div{height:100%;transition:width .2s;}
+  #hungerBar>div{background:linear-gradient(90deg,#ffb347,#ff8c42);}
+  #hpBar>div{background:linear-gradient(90deg,#ff7e7e,#e05c5c);}
+
+  #topRight{position:absolute;top:12px;right:12px;display:flex;gap:8px;z-index:21;flex-wrap:wrap;justify-content:flex-end;}
+  .iconbtn{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:var(--text);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer;font-weight:700;transition:.15s;}
+  .iconbtn:hover{background:rgba(0,0,0,.75);}
+
+  #interactHint{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.75);border:1px solid var(--accent);color:#fff;padding:10px 18px;border-radius:12px;font-size:15px;font-weight:700;pointer-events:none;animation:pulse 1.2s ease-in-out infinite;text-align:center;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+  #countdown{position:absolute;top:64px;left:50%;transform:translateX(-50%);z-index:22;background:rgba(200,20,20,.9);border:2px solid #fff;padding:8px 20px;border-radius:12px;font-size:18px;font-weight:900;pointer-events:none;animation:pulse .7s infinite;}
+
+  #toasts{position:absolute;top:100px;left:50%;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:92vw;}
+  .toast{background:rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.2);padding:9px 18px;border-radius:10px;font-size:14px;font-weight:700;animation:toastin .25s ease;text-align:center;}
+  .toast.good{border-color:var(--green);color:#c6f0c6;}
+  .toast.bad{border-color:var(--red);color:#ffc9c9;}
+  .toast.info{border-color:var(--accent);color:#ffe0b3;}
+  @keyframes toastin{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* 通用弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal-card{background:#1e2138;border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:22px;width:min(480px,94vw);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.6);animation:pop .2s ease;}
+  .modal-card h3{margin-bottom:4px;font-size:19px;}
+  .modal-card .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+  .row{display:flex;gap:10px;}
+  .row .btn{flex:1;}
+  .shop-item{display:flex;align-items:center;gap:12px;padding:11px;border-radius:12px;background:rgba(255,255,255,.04);margin-bottom:9px;}
+  .shop-item .emo{font-size:26px;}
+  .shop-item .info{flex:1;}
+  .shop-item .info b{display:block;font-size:15px;}
+  .shop-item .info span{font-size:12px;color:var(--muted);}
+  .shop-item .buy{background:var(--accent);color:#1a1a2e;border:0;border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap;}
+  .shop-item .buy:disabled{background:#555;color:#999;cursor:not-allowed;}
+  .modal-card .close{width:100%;margin-top:8px;background:#333;color:#fff;}
+  .modal-card .close:hover{background:#444;}
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .statgrid .cell{background:rgba(255,255,255,.05);border-radius:10px;padding:10px;text-align:center;}
+  .statgrid .cell b{display:block;font-size:18px;color:var(--gold);}
+  .statgrid .cell span{font-size:12px;color:var(--muted);}
+  .helpbox{background:rgba(0,0,0,.3);border-radius:12px;padding:14px;font-size:13px;line-height:2;}
+  .helpbox kbd{background:rgba(255,255,255,.12);border-radius:5px;padding:2px 8px;font-weight:700;color:var(--gold);}
+
+  /* 背包 */
+  .inv-item{display:flex;align-items:center;gap:10px;padding:9px;border-radius:10px;background:rgba(255,255,255,.04);margin-bottom:6px;font-size:14px;}
+  .inv-item .emo{font-size:20px;}
+  .inv-item .n{flex:1;}
+  .inv-item .x{color:var(--muted);}
+  .tag{font-size:11px;background:rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;color:var(--muted);}
+
+  /* 触屏 */
+  #touchControls{position:absolute;inset:0;z-index:25;pointer-events:none;}
+  #joystick{position:absolute;left:26px;bottom:26px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);pointer-events:auto;touch-action:none;}
+  #joystick .knob{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.35);transform:translate(-50%,-50%);}
+  #btnE{position:absolute;right:30px;bottom:40px;width:76px;height:76px;border-radius:50%;background:var(--accent);color:#1a1a2e;font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;border:0;pointer-events:auto;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+  #btnE:active{transform:scale(.94);}
+  #btnB{position:absolute;right:30px;bottom:130px;width:64px;height:64px;border-radius:50%;background:#7b6bc9;color:#fff;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;border:0;pointer-events:auto;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+  #btnB:active{transform:scale(.94);}
+  #btnAttack{position:absolute;right:120px;bottom:40px;width:64px;height:64px;border-radius:50%;background:#e05c5c;color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;border:0;pointer-events:auto;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+  #btnAttack:active{transform:scale(.94);}
+  #btnRide{position:absolute;right:120px;bottom:130px;width:64px;height:64px;border-radius:50%;background:#4aa3ff;color:#fff;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;border:0;pointer-events:auto;box-shadow:0 6px 16px rgba(0,0,0,.4);}
+  #btnRide:active{transform:scale(.94);}
+
+  /* 聊天框 */
+  #chatBox{position:absolute;left:12px;bottom:12px;width:min(320px,60vw);z-index:22;}
+  #chatLog{background:rgba(0,0,0,.5);border-radius:10px 10px 0 0;padding:8px 10px;max-height:120px;overflow-y:auto;font-size:13px;line-height:1.6;}
+  #chatLog div{color:#eee;word-break:break-all;}
+  #chatInput{width:100%;padding:9px 12px;border:1px solid rgba(255,255,255,.2);border-radius:0 0 10px 10px;background:rgba(0,0,0,.6);color:#fff;font-size:14px;outline:none;}
+
+  /* 物品快捷栏 */
+  #hotbarWrap{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:23;pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:5px;}
+  #hotbarName{font-size:12px;color:#ffd166;font-weight:700;background:rgba(0,0,0,.55);padding:2px 12px;border-radius:8px;min-height:18px;line-height:18px;}
+  #hotbar{display:flex;gap:6px;}
+  #hotbar .slot{width:50px;height:50px;border-radius:10px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:.12s;}
+  #hotbar .slot.active{border-color:#ffd166;background:rgba(255,209,102,.22);transform:translateY(-5px);}
+  #hotbar .slot .emo{font-size:24px;}
+  #hotbar .slot .num{position:absolute;top:0;left:3px;font-size:10px;color:#9aa;}
+  #hotbar .slot .cnt{position:absolute;bottom:0;right:3px;font-size:10px;color:#ffd166;}
+
+  /* 公告 / 赛季 */
+  .season-tag{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:#ffd166;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.35);border-radius:999px;padding:3px 12px;cursor:pointer;}
+  .season-tag:hover{background:rgba(255,209,102,.22);}
+  #announceBox{margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,210,100,.1);border:1px solid rgba(255,200,80,.4);}
+  .ann-title{font-size:13px;font-weight:800;color:#ffd166;margin-bottom:6px;}
+  .ann-text{font-size:13px;line-height:1.6;color:#ffe9c0;white-space:pre-wrap;word-break:break-word;}
+  .season-obj{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.04);margin-bottom:6px;font-size:14px;}
+  .season-obj .emo{font-size:18px;}
+  .season-obj .n{flex:1;}
+  .season-obj .st{font-size:12px;color:var(--muted);}
+  .season-obj.done .st{color:#7ee081;}
+
+  /* 云端同步红屏 */
+  #syncPopup{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(150,10,10,.94);backdrop-filter:blur(3px);}
+  .sync-card{width:min(470px,92vw);text-align:center;color:#fff;padding:30px;}
+  .sync-emoji{font-size:84px;animation:pulse 1s infinite;}
+  .sync-card h2{font-size:26px;color:#ffd3d3;margin:10px 0 16px;}
+  .sync-card p{font-size:15px;line-height:1.7;color:#ffe0e0;margin-bottom:12px;}
+  .sync-sub{color:#ffb3b3;font-weight:800;}
+  .sync-btn{width:100%;margin-top:16px;padding:15px;border:0;border-radius:12px;background:#fff;color:#b00000;font-size:17px;font-weight:900;cursor:pointer;}
+  .sync-btn:hover{background:#ffe0e0;}
+  .sync-btn:disabled{opacity:.6;cursor:not-allowed;}
+  .sync-cancel{margin-top:12px;background:transparent;border:0;color:#ffb3b3;font-size:13px;cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- ============ 登录界面 ============ -->
+<div id="authScreen">
+  <button onclick="openSettings()" style="position:fixed;top:16px;right:16px;z-index:60;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:9px 14px;font-size:15px;cursor:pointer;">⚙️ 设置</button>
+  <div class="auth-card">
+    <div class="logo">
+      <h1 id="gameTitle" onclick="titleTap()" style="cursor:pointer;">穷小子打工记</h1>
+      <p>一款俯视角 2D 打工模拟游戏</p>
+      <span class="season-tag" onclick="openSeason()">🏆 S1 起源赛季 · 查看赛季指引</span>
+    </div>
+    <div id="announceBox" class="hidden">
+      <div class="ann-title">📢 服务器公告</div>
+      <div class="ann-text" id="annText"></div>
+    </div>
+    <div class="tabs">
+      <button id="tabLogin" class="active" onclick="switchAuth('login')">登录</button>
+      <button id="tabRegister" onclick="switchAuth('register')">注册账号</button>
+    </div>
+    <div id="loginForm">
+      <div class="field"><label>用户名</label><input id="liUser" placeholder="请输入用户名" autocomplete="off"></div>
+      <div class="field"><label>密码</label><input id="liPass" type="password" placeholder="请输入密码"></div>
+      <button class="btn" onclick="doLogin()">登 录</button>
+      <span class="link" onclick="switchAuth('forgot')">忘记密码？使用密保找回</span>
+    </div>
+    <div id="registerForm" class="hidden">
+      <div class="field"><label>用户名（游戏中的显示名字）</label><input id="reUser" placeholder="输入您的用户名" autocomplete="off"></div>
+      <div class="field"><label>密码</label><input id="rePass" type="password" placeholder="设置密码"></div>
+      <div class="field"><label>确认密码</label><input id="rePass2" type="password" placeholder="再次输入密码"></div>
+      <div class="field"><label>密保问题一：你的父亲是谁？</label><input id="reQ1" placeholder="三选一，任填一个即可" autocomplete="off"></div>
+      <div class="field"><label>密保问题二：你最喜欢的玩具是什么？</label><input id="reQ2" placeholder="三选一，任填一个即可" autocomplete="off"></div>
+      <div class="field"><label>密保问题三：你的班主任是谁？</label><input id="reQ3" placeholder="三选一，任填一个即可" autocomplete="off"></div>
+      <button class="btn" onclick="doRegister()">注册并进入游戏</button>
+      <div class="hint">⚠️ 密保用于密码丢失时找回。三个问题<b>任选一个</b>填写即可；找回时需输入用户名，并答对你当初填写的那一题。</div>
+    </div>
+    <div id="forgotForm" class="hidden">
+      <div class="field"><label>请输入要找回的用户名</label><input id="fgUser" placeholder="请输入用户名" autocomplete="off"></div>
+      <button class="btn" id="fgFindBtn" onclick="findAccount()">下一步</button>
+      <div id="fgQuestions" class="hidden">
+        <div id="fgQList"></div>
+        <div class="field"><label>设置新密码</label><input id="fgNew" type="password" placeholder="请输入新密码"></div>
+        <div class="field"><label>确认新密码</label><input id="fgNew2" type="password" placeholder="再次输入新密码"></div>
+        <button class="btn" onclick="resetPassword()">重置密码</button>
+      </div>
+      <span class="link" onclick="switchAuth('login')">返回登录</span>
+    </div>
+    <div class="msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- ============ 游戏界面 ============ -->
+<div id="gameScreen" class="hidden">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <div class="hud-pill gems"><span class="ico">💎</span><span id="hudGems">0</span></div>
+    <div class="hud-pill hunger"><span class="ico">🍖</span>饱食度<div class="bar" id="hungerBar"><div></div></div><span id="hudHunger">100</span></div>
+    <div class="hud-pill hp"><span class="ico">❤️</span>生命<div class="bar" id="hpBar"><div></div></div><span id="hudHp">100</span></div>
+    <div class="hud-pill"><span class="ico">👤</span><span id="hudName">玩家</span></div>
+    <div class="hud-pill" id="hudVehicle" style="display:none;color:#8ec5ff;"><span id="hudVLabel">🚗 油</span><span id="hudFuel">100</span> · 耐久<span id="hudDur">100</span></div>
+    <div class="hud-pill" id="hudNet"><span class="ico">⚠️</span><span id="hudNetTxt">未连接</span></div>
+  </div>
+
+  <div id="topRight">
+    <button class="iconbtn" id="adminBtn" onclick="openGameAdmin()" style="display:none;">🛠️</button>
+    <button class="iconbtn" onclick="showPhone()">📱</button>
+    <button class="iconbtn" onclick="showInventory()">🎒 背包</button>
+    <button class="iconbtn" onclick="openFriends()">👥 好友</button>
+    <button class="iconbtn" onclick="openSeason()">🏆 赛季</button>
+    <button class="iconbtn" onclick="openSettings()">⚙️</button>
+    <button class="iconbtn" onclick="showHelp()">❓</button>
+    <button class="iconbtn" onclick="logout()">🚪 退出</button>
+  </div>
+
+  <div id="interactHint" class="hidden">按 E 互动</div>
+  <div id="countdown" class="hidden"></div>
+  <div id="toasts"></div>
+
+  <div id="modalRoot" class="modal hidden">
+    <div class="modal-card" id="modalCard"></div>
+  </div>
+
+  <div id="chatBox" class="hidden">
+    <div id="chatLog"></div>
+    <input id="chatInput" placeholder="按回车发送消息…" maxlength="200" autocomplete="off">
+  </div>
+
+  <div id="hotbarWrap">
+    <div id="hotbarName">—</div>
+    <div id="hotbar"></div>
+  </div>
+
+  <div id="touchControls" class="hidden">
+    <div id="joystick"><div class="knob"></div></div>
+    <button id="btnE">E</button>
+    <button id="btnB">乞讨</button>
+    <button id="btnAttack">打</button>
+    <button id="btnRide">车</button>
+  </div>
+</div>
+
+<!-- 管理员后台弹窗 -->
+<div id="adminModal" class="modal hidden" style="z-index:70;">
+  <div class="modal-card" id="adminCard"></div>
+</div>
+
+<!-- 设置弹窗 -->
+<div id="settingsModal" class="modal hidden" style="z-index:70;">
+  <div class="modal-card">
+    <h3>⚙️ 设置</h3>
+    <div class="sub">服务器与文件</div>
+    <div class="field"><label>联机服务器地址</label><input id="setServer" placeholder="wss://666-production-e131c737.up.railway.app" autocomplete="off"></div>
+    <button class="btn" onclick="saveServer()">💾 保存服务器地址</button>
+    <button class="btn ghost" onclick="downloadHtml()">⬇️ 下载 HTML 文件</button>
+    <div class="helpbox" style="margin-top:10px">· 保存后重新登录即可用新地址联机<br>· 下载 HTML 会把当前游戏（含已设置的服务器地址）保存成一个文件，方便分享或部署</div>
+    <button class="btn close" onclick="closeSettings()">关闭</button>
+  </div>
+</div>
+
+<!-- 赛季指引弹窗 -->
+<div id="seasonModal" class="modal hidden" style="z-index:70;">
+  <div class="modal-card" id="seasonCard"></div>
+</div>
+
+<!-- 云端存档同步提示（全屏红底） -->
+<div id="syncPopup" class="hidden">
+  <div class="sync-card">
+    <div class="sync-emoji">⚠️</div>
+    <h2 id="syncTitle">检测到旧本地存档</h2>
+    <p id="syncDesc">你的账号目前只保存在本地。为了在任意设备继续游玩、避免换设备丢档，请先把存档同步到云端。</p>
+    <p class="sync-sub" id="syncMsg">同步后即可开始游玩</p>
+    <button id="syncBtn" class="sync-btn">☁️ 同步到云端并进入游戏</button>
+    <button id="syncCancel" class="sync-cancel">取消，返回登录</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   账号系统（登录 / 注册 / 密保找回）
+============================================================ */
+const USERS_KEY = 'pqdg_users_v2';
+const SECURITY_QUESTIONS = [
+  { key:'father', text:'你的父亲是谁？' },
+  { key:'toy',    text:'你最喜欢的玩具是什么？' },
+  { key:'teacher',text:'你的班主任是谁？' }
+];
+function hash(str){ let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h+str.charCodeAt(i))>>>0; } return h.toString(36); }
+function loadUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{}; }catch(e){ return {}; } }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+
+let currentUser = null;
+
+function switchAuth(mode){
+  document.getElementById('tabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('tabRegister').classList.toggle('active', mode==='register');
+  document.getElementById('loginForm').classList.toggle('hidden', mode!=='login');
+  document.getElementById('registerForm').classList.toggle('hidden', mode!=='register');
+  document.getElementById('forgotForm').classList.toggle('hidden', mode!=='forgot');
+  document.getElementById('fgQuestions').classList.add('hidden');
+  document.getElementById('fgFindBtn').classList.remove('hidden');
+  setAuthMsg('');
+}
+function setAuthMsg(t, ok){ const m=document.getElementById('authMsg'); m.textContent=t; m.className='msg'+(ok?' ok':''); }
+
+function doLogin(){
+  const u=document.getElementById('liUser').value.trim(), p=document.getElementById('liPass').value;
+  if(!u||!p){ setAuthMsg('请输入用户名和密码'); return; }
+  const users=loadUsers(), rec=users[u];
+  if(!rec){ setAuthMsg('该账号不存在，请先注册'); return; }
+  if(rec.pass!==hash(p)){ setAuthMsg('密码错误'); return; }
+  currentUser=u;
+  // 先从云端加载存档
+  setAuthMsg('正在加载云端存档…');
+  cloudLoad(u, rec.pass, function(res){
+    if(res.ok && res.save){
+      rec.game = res.save;
+      const us2 = loadUsers(); us2[u] = rec; saveUsers(us2);
+      cloudReady = true;
+      setAuthMsg('云端存档已加载', true);
+      connectAndEnter(rec.game);
+    } else if(res.ok && res.save === null){
+      // 云端无存档 → 旧本地账户 → 红屏提示同步
+      setAuthMsg('');
+      showSyncPopup(u, rec);
+    } else {
+      setAuthMsg('云端存档加载失败：' + (res.error || '网络错误'));
+    }
+  });
+}
+function doRegister(){
+  const u=document.getElementById('reUser').value.trim(), p=document.getElementById('rePass').value, p2=document.getElementById('rePass2').value;
+  const a1=document.getElementById('reQ1').value.trim(), a2=document.getElementById('reQ2').value.trim(), a3=document.getElementById('reQ3').value.trim();
+  if(!u){ setAuthMsg('请输入用户名'); return; }
+  if(!/^[\u4e00-\u9fa5A-Za-z0-9_]{1,12}$/.test(u)){ setAuthMsg('用户名需为 1-12 位中文/字母/数字/下划线'); return; }
+  if(p.length<4){ setAuthMsg('密码至少 4 位'); return; }
+  if(p!==p2){ setAuthMsg('两次密码不一致'); return; }
+  if(!a1&&!a2&&!a3){ setAuthMsg('请至少填写一个密保问题'); return; }
+  const users=loadUsers();
+  if(users[u]){ setAuthMsg('该用户名已被注册，请换一个'); return; }
+  users[u]={ pass:hash(p), security:{father:a1,toy:a2,teacher:a3}, game:newGameData() };
+  saveUsers(users); currentUser=u;
+  setAuthMsg('注册成功，正在创建云端存档…', true);
+  cloudUpload(u, users[u].pass, users[u].game, function(){
+    connectAndEnter(users[u].game);
+  });
+}
+function findAccount(){
+  const u=document.getElementById('fgUser').value.trim();
+  if(!u){ setAuthMsg('请输入用户名'); return; }
+  const users=loadUsers();
+  if(!users[u]){ setAuthMsg('该账号不存在'); return; }
+  const rec=users[u], sec=rec.security||{};
+  const qs=[];
+  if(sec.father) qs.push({key:'father',text:'你的父亲是谁？'});
+  if(sec.toy) qs.push({key:'toy',text:'你最喜欢的玩具是什么？'});
+  if(sec.teacher) qs.push({key:'teacher',text:'你的班主任是谁？'});
+  if(!qs.length){ setAuthMsg('该账号未设置密保，无法找回'); return; }
+  let html='';
+  qs.forEach((q,i)=>{ html+=`<div class="field"><label>密保问题：${q.text}</label><input id="fgA${i}" data-key="${q.key}" placeholder="请输入答案" autocomplete="off"></div>`; });
+  document.getElementById('fgQList').innerHTML=html;
+  window._fgUser=u; window._fgQs=qs;
+  document.getElementById('fgQuestions').classList.remove('hidden');
+  document.getElementById('fgFindBtn').classList.add('hidden');
+  setAuthMsg('已找到账号，请回答密保问题');
+}
+function resetPassword(){
+  const u=window._fgUser, qs=window._fgQs||[];
+  const np=document.getElementById('fgNew').value, np2=document.getElementById('fgNew2').value;
+  const users=loadUsers(), rec=users[u];
+  if(!rec){ setAuthMsg('账号不存在'); return; }
+  for(let i=0;i<qs.length;i++){
+    const ans=(document.getElementById('fgA'+i)||{}).value||'';
+    if((rec.security[qs[i].key]||'').trim()!==ans.trim()){ setAuthMsg('密保答案不正确'); return; }
+  }
+  if(np.length<4){ setAuthMsg('新密码至少 4 位'); return; }
+  if(np!==np2){ setAuthMsg('两次新密码不一致'); return; }
+  rec.pass=hash(np); saveUsers(users);
+  setAuthMsg('密码重置成功，请登录', true);
+  setTimeout(()=>switchAuth('login'), 600);
+}
+
+/* ============================================================
+   游戏数据定义
+============================================================ */
+const WORLD = { w: 2400, h: 4800 };
+
+// 传送门
+const PORTALS = [
+  { id:'poor', name:'穷人传送门', x:1840, y:260, r:60, color:'#4aa3ff', usable:true,  desc:'进入城市大世界' },
+  { id:'rich', name:'富豪传送门', x:2160, y:260, r:60, color:'#e6c25a', usable:false, desc:'永久封锁（纯装饰）' },
+];
+const SPAWN_PLATFORM = { x:2000, y:260 };
+const CITY_SPAWN = { x:2000, y:900 };
+
+// 摆摊点（自营摊位）
+const STALL_SPOTS = [
+  { x:1720, y:900 }, { x:1880, y:900 }, { x:2040, y:900 }, { x:2200, y:900 }
+];
+
+// 井盖位置
+// 井盖全部放在马路正中间（马路的 y 中心线），这样绝不会出现在店里
+const MANHOLES = [
+  {x:500,y:1020},{x:1000,y:1020},{x:1500,y:1020},{x:2000,y:1020},
+  {x:500,y:1460},{x:1000,y:1460},{x:1500,y:1460},{x:2000,y:1460},
+  {x:500,y:1860},{x:1000,y:1860},{x:1500,y:1860},{x:2000,y:1860},
+  {x:500,y:2320},{x:1000,y:2320},{x:1500,y:2320},{x:2000,y:2320},
+  {x:500,y:2840},{x:1000,y:2840},{x:1500,y:2840},{x:2000,y:2840},
+  {x:500,y:3260},{x:1000,y:3260},{x:1500,y:3260},{x:2000,y:3260}
+];
+
+const PICKAXES = [
+  { id:'wood',   name:'木镐',       cost:0,    power:1, emo:'🪓' },
+  { id:'stone',  name:'石镐',       cost:100,  power:2, emo:'⛏️' },
+  { id:'iron',   name:'铁镐',       cost:300,  power:3, emo:'⚒️' },
+  { id:'gold',   name:'金镐',       cost:800,  power:4, emo:'🔨' },
+  { id:'diamond',name:'钻石镐',     cost:2000, power:5, emo:'💎' },
+  { id:'netherite',name:'下界合金镐',cost:5000, power:7, emo:'🟪' },
+];
+
+// 摆摊区商铺
+const STALLS = [
+  { id:'hotdog', name:'热狗摊',   icon:'🌭', x:1640, y:820,  w:120, h:110, color:'#e06c5a', items:[{n:'热狗',e:'🌭',c:12,h:30},{n:'豪华热狗',e:'🌭',c:25,h:60}] },
+  { id:'pancake',name:'手抓饼摊', icon:'🥞', x:1900, y:820,  w:120, h:110, color:'#e0a23c', items:[{n:'手抓饼',e:'🥞',c:10,h:25},{n:'加蛋手抓饼',e:'🥞',c:18,h:50}] },
+  { id:'pizza',  name:'披萨摊',   icon:'🍕', x:2160, y:820,  w:120, h:110, color:'#e06c9a', items:[{n:'披萨',e:'🍕',c:20,h:50},{n:'全家福披萨',e:'🍕',c:40,h:90}] },
+];
+
+// 全部建筑
+const BUILDINGS = [
+  // —— 商业区街道 1 ——
+  { id:'ebike',    name:'电动车店', type:'vehicle', vehicle:'ebike', icon:'🛵', x:400,  y:1120, w:170, h:140, color:'#4aa3ff', desc:'卖电动车的，买了跑得快。' },
+  { id:'car',      name:'汽车专卖店', type:'vehicle', vehicle:'car', icon:'🚗', x:680,  y:1120, w:190, h:150, color:'#e6c25a', desc:'独立车行，专卖小汽车。' },
+  { id:'lottery',  name:'彩票店',   type:'lottery', icon:'🎰', x:980,  y:1120, w:150, h:130, color:'#e05c5c', desc:'50绿宝石一张，高风险高回报。' },
+  { id:'mc',       name:'麦当劳',   type:'food', items:'mc', icon:'🍔', x:1220, y:1120, w:160, h:140, color:'#ff8c42', desc:'洋快餐，管饱。' },
+  { id:'pizzahut', name:'必胜客',   type:'food', items:'pizza', icon:'🍕', x:1470, y:1120, w:160, h:140, color:'#e06c9a', desc:'披萨连锁店。' },
+  { id:'bank',     name:'银行',     type:'bank', icon:'🏦', x:1730, y:1120, w:170, h:150, color:'#b08a5c', desc:'存钱吃利息，稳妥理财。' },
+  { id:'netbar',   name:'网吧',     type:'contract', icon:'🖥️', x:2000, y:1120, w:170, h:140, color:'#7b6bc9', desc:'可承包下来自己当老板经营。' },
+
+  // —— 商业区街道 2 ——
+  { id:'zhengxin', name:'正新鸡排', type:'delivery', icon:'🍗', x:400,  y:1520, w:160, h:140, color:'#e0a23c', desc:'接外卖单，炸鸡送全城。' },
+  { id:'mixue',    name:'蜜雪冰城', type:'food', items:'mixue', icon:'🍦', x:680,  y:1520, w:150, h:130, color:'#ff8c8c', desc:'甜蜜蜜的冷饮店。' },
+  { id:'hardware', name:'五金店',   type:'hardware', icon:'🔧', x:980,  y:1520, w:160, h:140, color:'#5c8a8a', desc:'回收井盖、卖镐子。' },
+  { id:'fastfood', name:'快餐店',   type:'delivery', icon:'🍱', x:1220, y:1520, w:160, h:140, color:'#e0a23c', desc:'外卖系统，接单送餐。' },
+  { id:'gadget',   name:'恶搞道具店', type:'gadget', icon:'🧸', x:1470, y:1520, w:170, h:150, color:'#d9a0ff', desc:'全游戏最娱乐的商店。' },
+  { id:'hospital', name:'医院',     type:'hospital', icon:'🏥', x:1730, y:1520, w:170, h:150, color:'#ff7e7e', desc:'医生职业，回血救治。' },
+  { id:'taxi',     name:'网约车站', type:'taxi', icon:'🚕', x:2000, y:1520, w:160, h:140, color:'#ffd166', desc:'接乘客赚车费。' },
+
+  // —— 生活区 ——
+  { id:'market',   name:'菜市场',   type:'market', icon:'🥬', x:400,  y:1920, w:200, h:160, color:'#6fbf73', desc:'卖生活食材。' },
+  { id:'peace',    name:'和平饭店', type:'peace', icon:'🏨', x:720,  y:1920, w:180, h:150, color:'#c9a15a', desc:'招牌菜：烤老鼠 5绿宝石。' },
+  { id:'snack',    name:'零食店',   type:'food', items:'snack', icon:'🍪', x:1000, y:1920, w:150, h:130, color:'#ffb347', desc:'街边零食商铺。' },
+  { id:'shawei',   name:'沙威玛卷饼店', type:'food', items:'shawei', icon:'🌯', x:1300, y:2140, w:140, h:120, color:'#8a6f47', hidden:true, desc:'隐藏彩蛋商铺！' },
+
+  // —— 工作区 ——
+  { id:'office996',name:'996办公公司', type:'job996', icon:'💼', x:400,  y:2360, w:200, h:160, color:'#7b6bc9', desc:'提交工作文档，审核通过发工资。' },
+  { id:'mine',     name:'野外矿场', type:'mine', icon:'⛏️', x:740,  y:2360, w:200, h:160, color:'#8a8f98', desc:'手动挖矿，原石出售或烧制提纯。' },
+  { id:'factory',  name:'电子厂',   type:'factory', icon:'🏭', x:1060, y:2360, w:200, h:160, color:'#5aa9e0', desc:'进厂打工，稳定工资。' },
+
+  // —— 住宅区 ——
+  { id:'villa',    name:'别墅区',   type:'villa', icon:'🏡', x:400,  y:2880, w:200, h:160, color:'#6bbf73', desc:'地皮免费认领，建房装修要钱。' },
+  { id:'estate',   name:'居民小区', type:'estate', icon:'🏘️', x:740,  y:2880, w:200, h:160, color:'#5aa9e0', desc:'买成品房，拎包入住。' },
+  { id:'rent',     name:'租房店',   type:'rent', icon:'🏠', x:1060, y:2880, w:180, h:150, color:'#c9a15a', desc:'可租赁房屋短期居住。' },
+
+  // —— 彩蛋 ——
+  { id:'kongcheng',name:'空城计豪华小区', type:'kongcheng', icon:'🏰', x:1700, y:2360, w:300, h:220, color:'#d9b36c', desc:'大门豪华，里面全是空地杂草。' },
+  { id:'server',   name:'服务器房', type:'server', icon:'🖧', x:1400, y:2880, w:180, h:150, color:'#8a8f98', desc:'堆满土豆破烂的地方。' },
+
+  // —— 新增设施 ——
+  { id:'repair',   name:'汽修店', type:'repair', icon:'🔧', x:1450, y:2360, w:200, h:160, color:'#8a8f98', desc:'修车、修故障。' },
+  { id:'gas',      name:'加油站·充电站', type:'gas', icon:'⛽', x:1400, y:1920, w:160, h:140, color:'#e0a23c', desc:'给汽车加油、给电动车充电。' },
+  { id:'insurance',name:'保险公司', type:'insurance', icon:'🛡️', x:1700, y:1920, w:160, h:140, color:'#5aa9e0', desc:'办理车辆保险和人保。' },
+  { id:'court',    name:'法庭', type:'court', icon:'⚖️', x:800, y:3400, w:260, h:200, color:'#c9a15a', desc:'犯了事会被传唤到这里受审。' },
+  { id:'jail',     name:'监狱', type:'jail', icon:'🚔', x:1400, y:3400, w:260, h:200, color:'#5a5a66', desc:'犯了事会被关押到这里。' },
+];
+
+// 汪警卫 NPC（会沿马路巡逻，抓捕偷外卖/违法的人）
+const GUARDS = [
+  { name:'汪警卫·大旺', x:700,  y:1020, r:16, patrol:[[700,1020],[1200,1020]], wp:1 },
+  { name:'汪警卫·二旺', x:2100, y:1020, r:16, patrol:[[2100,1020],[1600,1020]], wp:1 },
+  { name:'汪警卫·三旺', x:700,  y:1460, r:16, patrol:[[700,1460],[1200,1460]], wp:1 },
+  { name:'汪警卫·四旺', x:2100, y:1860, r:16, patrol:[[2100,1860],[1600,1860]], wp:1 },
+  { name:'汪警卫·五旺', x:700,  y:2320, r:16, patrol:[[700,2320],[1200,2320]], wp:1 },
+  { name:'汪警卫·六旺', x:2100, y:2840, r:16, patrol:[[2100,2840],[1600,2840]], wp:1 },
+];
+
+// 食物菜单
+const FOOD_MENUS = {
+  mc:    [{n:'巨无霸',e:'🍔',c:15,h:35},{n:'麦辣鸡腿堡',e:'🍔',c:20,h:50},{n:'薯条',e:'🍟',c:8,h:15}],
+  pizza: [{n:'披萨',e:'🍕',c:20,h:50},{n:'芝士披萨',e:'🍕',c:35,h:80}],
+  mixue: [{n:'柠檬水',e:'🍋',c:8,h:15},{n:'冰淇淋',e:'🍦',c:10,h:20},{n:'珍珠奶茶',e:'🧋',c:12,h:25}],
+  snack: [{n:'薯片',e:'🍟',c:6,h:12},{n:'辣条',e:'🌶️',c:5,h:10},{n:'饼干',e:'🍪',c:7,h:14}],
+  shawei:[{n:'沙威玛卷饼',e:'🌯',c:8,h:20},{n:'豪华卷饼',e:'🌯',c:15,h:40}],
+};
+
+const MARKET_ITEMS = [
+  {n:'新鲜奶龙汁',e:'🥛',c:15,h:25},{n:'盐',e:'🧂',c:5,h:0},{n:'醋',e:'🫗',c:5,h:0},
+  {n:'米',e:'🍚',c:10,h:15},{n:'鱼',e:'🐟',c:12,h:20},{n:'土豆',e:'🥔',c:8,h:18}
+];
+
+const GADGET_ITEMS = [
+  {n:'TETO玩偶',e:'🎎',c:200,d:'纯收藏摆件'},
+  {n:'MIKU玩偶',e:'🎤',c:200,d:'纯收藏摆件'},
+  {n:'白色臭兔子',e:'🐇',c:500,d:'只能手持，无任何作用，纯娱乐收藏'},
+  {n:'自定义音乐音箱',e:'🔊',c:5000,d:'复制网易云外链粘贴即可播放任意歌曲'},
+];
+
+// 树木：只保留长在草地上的，自动剔除压在马路/建筑上的（修复树刷在路中间）
+const ROAD_RECTS = [
+  {x:0,y:960,w:2400,h:120},{x:0,y:1400,w:2400,h:120},{x:0,y:1800,w:2400,h:120},
+  {x:0,y:2260,w:2400,h:120},{x:0,y:2780,w:2400,h:120},{x:0,y:3200,w:2400,h:120},
+  {x:600,y:0,w:100,h:4800},{x:1300,y:0,w:100,h:4800},{x:1900,y:0,w:100,h:4800}
+];
+function isBlockedSpot(x,y){
+  for(const r of ROAD_RECTS){ if(x>r.x-26&&x<r.x+r.w+26&&y>r.y-26&&y<r.y+r.h+26) return true; }
+  for(const b of BUILDINGS){ if(x>b.x-26&&x<b.x+b.w+26&&y>b.y-26&&y<b.y+b.h+26) return true; }
+  for(const s of STALLS){ if(x>s.x-26&&x<s.x+s.w+26&&y>s.y-26&&y<s.y+s.h+26) return true; }
+  return false;
+}
+let TREES = [
+  [320,980],[520,1020],[320,1400],[560,1400],[920,1400],[1340,1400],[1650,1400],[2150,1400],
+  [320,1800],[560,1800],[860,1800],[1150,1800],[1600,1800],[2150,1800],
+  [320,2240],[560,2240],[860,2240],[1300,2240],[1600,2240],[2150,2240],
+  [320,2760],[560,2760],[860,2760],[1300,2760],[1600,2760],[2150,2760],
+  [320,3120],[560,3120],[860,3120],[1300,3120],[1600,3120],[2150,3120],
+  [1600,3400],[2150,3400],[320,3500],[700,3500],[1300,3500]
+];
+TREES = TREES.filter(t => !isBlockedSpot(t[0], t[1]));
+// 补充一些明确长在草地上的树
+[[220,1320],[1200,1320],[2200,1320],[220,1720],[1200,1720],[2200,1720],
+ [220,2160],[1200,2160],[2200,2160],[220,2620],[1200,2620],[2200,2620],
+ [220,3080],[1200,3080],[2200,3080],[220,3560],[1200,3560],[2200,3560]]
+  .forEach(t => { if(!isBlockedSpot(t[0], t[1])) TREES.push(t); });
+
+const VEHICLES = {
+  ebike: { name:'电动车', cost:800,  speed:330, emo:'🛵', fuelMax:100, fuelRate:1.0, durMax:100, body:'#4aa3ff' },
+  car:   { name:'小汽车', cost:5000, speed:430, emo:'🚗', fuelMax:100, fuelRate:2.0, durMax:100, body:'#e6c25a' },
+};
+// 车辆故障（耐久过低会随机出现）
+const FAULTS = {
+  oil:        { name:'缺机油',   desc:'发动机抖动，速度 -20%', pen:0.8 },
+  suspension: { name:'悬挂损坏', desc:'车身颠簸，速度 -30%', pen:0.7 },
+  tire:       { name:'轮胎磨损', desc:'抓地力下降，速度 -15%', pen:0.85 },
+  engine:     { name:'发动机故障', desc:'动力不足，速度 -40%', pen:0.6 },
+};
+
+function newGameData(){
+  return {
+    gems:100, hunger:100, hp:100,
+    totalEarned:0,
+    inventory:{},
+    pickaxe:'wood',
+    vehicle:null,
+    fuel:100,
+    durability:100,
+    faults:[],
+    insurance:{ vehicle:false, personal:false },
+    home:null,
+    houseOwned:false,
+    landClaimed:false,
+    rentDays:0,
+    contract:null,
+    friends:[],
+    deposits:{ bank:0 },
+    hasIntro:true,
+    x:CITY_SPAWN.x, y:CITY_SPAWN.y,
+    zone:'spawn'
+  };
+}
+
+/* ============================================================
+   运行时状态
+============================================================ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W=0,H=0;
+function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+window.addEventListener('resize', resize);
+
+const player = {
+  x:0, y:0, r:15, speed:240, dirX:0, dirY:0, facing:'down', moving:false,
+  working:null, carryManholes:0, begging:false,
+  riding:false, pvx:0, pvy:0,   // 是否驾驶中 / 停放载具坐标
+};
+let game = null;
+let cam = {x:0,y:0};
+let keys = {};
+let nearTarget = null;
+let floatingTexts = [];
+let delivery = null;
+let taxi = null;
+let documentJob = null;
+let stallBiz = null;
+let workTimer = 0;
+let hungerAcc = 0;
+let lastTime = performance.now();
+let interior = null;        // 建筑内视角 { b, returnX, returnY }
+let attackCd = 0;           // 镐子攻击冷却
+let stealCdUntil = 0;       // 偷外卖冷却
+let jailUntil = 0;          // 监狱释放时间
+
+/* ============================================================
+   进入 / 退出
+============================================================ */
+function enterGame(data){
+  game = data || newGameData();
+  // 兜底：修复旧版本 bug 导致的 NaN / null / 非法数值（尤其是绿宝石）
+  const numOr = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  game.gems = numOr(game.gems, 100);
+  game.hunger = numOr(game.hunger, 100);
+  game.hp = numOr(game.hp, 100);
+  game.totalEarned = numOr(game.totalEarned, 0);
+  game.rentDays = numOr(game.rentDays, 0);
+  if(!game.deposits) game.deposits = { bank: 0 };
+  game.deposits.bank = numOr(game.deposits.bank, 0);
+  if(game.gems < 0) game.gems = 0;
+  if(!game.inventory) game.inventory = {};
+  if(!game.friends) game.friends = [];
+  game.fuel = numOr(game.fuel, 100);
+  game.durability = numOr(game.durability, 100);
+  if(!Array.isArray(game.faults)) game.faults = [];
+  if(!game.insurance) game.insurance = { vehicle:false, personal:false };
+  if(game.hasIntro) game.zone='spawn';
+  if(game.zone==='spawn'){ player.x=SPAWN_PLATFORM.x; player.y=SPAWN_PLATFORM.y+120; }
+  else { player.x=game.x||CITY_SPAWN.x; player.y=game.y||CITY_SPAWN.y; }
+  player.pvx=player.x; player.pvy=player.y;
+  resetRunState();
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('hudName').textContent = currentUser||'玩家';
+  const rec = loadUsers()[currentUser];
+  document.getElementById('adminBtn').style.display = (rec && rec.admin) ? '' : 'none';
+  resize();
+  updateHUD();
+  if(game.hasIntro){ game.hasIntro=false; toast('你出生在悬浮平台，进入穷人传送门开始打工生活吧！','info'); }
+  else toast('欢迎回来，'+(currentUser||'玩家')+'！','info');
+  if('ontouchstart' in window) document.getElementById('touchControls').classList.remove('hidden');
+}
+function resetRunState(){
+  player.working=null; player.carryManholes=0; player.begging=false; player.riding=false;
+  delivery=null; taxi=null; documentJob=null; stallBiz=null;
+  nearTarget=null; floatingTexts=[];
+  interior=null; jailUntil=0; stealCdUntil=0;
+  lastHotbarSig=''; hotbarSel=0;
+  document.getElementById('countdown').classList.add('hidden');
+  document.getElementById('interactHint').classList.add('hidden');
+}
+function logout(){
+  saveGame();
+  resetRunState();
+  closeModal();
+  if(ws){ try{ ws.close(); }catch(e){} }
+  wsConnected=false; remotePlayers={};
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  currentUser=null; game=null; switchAuth('login');
+}
+function saveGame(){
+  if(!currentUser||!game) return;
+  game.x=player.x; game.y=player.y;
+  const users=loadUsers();
+  if(users[currentUser]){ users[currentUser].game=game; saveUsers(users); }
+  // 云端自动保存（节流 ~8 秒）
+  const now = performance.now();
+  if(now - lastCloudSave > 8000){
+    lastCloudSave = now;
+    const rec = users[currentUser];
+    if(rec) cloudUpload(currentUser, rec.pass, game);
+  }
+}
+setInterval(saveGame, 4000);
+window.addEventListener('beforeunload', saveGame);
+// 立即保存（本地 + 云端），用于关键事件（买车/买房/死亡等）
+function saveNow(){
+  if(!currentUser || !game) return;
+  game.x=player.x; game.y=player.y;
+  const users = loadUsers();
+  if(users[currentUser]){ users[currentUser].game = game; saveUsers(users); }
+  const rec = users[currentUser];
+  if(rec) cloudUpload(currentUser, rec.pass, game);
+}
+
+/* ============================================================
+   通用 UI
+============================================================ */
+function toast(txt, type){
+  const box=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className='toast '+(type||'info'); el.textContent=txt; box.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400); },2800);
+}
+function showModal(html){ document.getElementById('modalCard').innerHTML=html; document.getElementById('modalRoot').classList.remove('hidden'); }
+function closeModal(){ document.getElementById('modalRoot').classList.add('hidden'); }
+function spawnFloating(x,y,txt,color){ floatingTexts.push({x,y,txt,color,life:1,vy:-40}); }
+
+function updateHUD(){
+  if(!game) return;
+  document.getElementById('hudGems').textContent = Math.floor(game.gems);
+  document.getElementById('hudHunger').textContent = Math.floor(game.hunger);
+  document.getElementById('hudHp').textContent = Math.floor(game.hp);
+  document.getElementById('hungerBar').firstElementChild.style.width = (game.hunger)+'%';
+  document.getElementById('hpBar').firstElementChild.style.width = (game.hp)+'%';
+  const net=document.getElementById('hudNet');
+  if(net){ net.querySelector('.ico').textContent = wsConnected ? '🔗' : '⚠️'; document.getElementById('hudNetTxt').textContent = wsConnected ? ('联机 '+Object.keys(remotePlayers).length+'人') : '未连接'; }
+  const cv=document.getElementById('chatBox'); if(cv){ cv.classList.toggle('hidden', !wsConnected); }
+  const hv=document.getElementById('hudVehicle');
+  if(hv){
+    if(game.vehicle){
+      hv.style.display='';
+      document.getElementById('hudVLabel').textContent = game.vehicle==='ebike' ? '🔋 电量' : '⛽ 油';
+      document.getElementById('hudFuel').textContent=Math.floor(game.fuel);
+      document.getElementById('hudDur').textContent=Math.floor(game.durability);
+    } else hv.style.display='none';
+  }
+  refreshHotbar();
+}
+
+function showInventory(){
+  const inv = game.inventory;
+  let html = `<h3>🎒 我的背包</h3><div class="sub">新手初始全套物品与收集物</div>`;
+  const boolList = [
+    ['棍母牌手机','📱', hasItem('phone')], ['身份证','🪪', hasItem('idcard')], ['乞讨碗','🥣', hasItem('bowl')],
+    ['食物食谱','📖', hasItem('recipe')], ['告示牌','🪧', hasItem('sign')], ['自定义摊位框架','🛒', hasItem('stallframe')],
+    ['医疗箱','🧰', hasItem('medkit')],
+  ];
+  const countList = [
+    ['井盖','🔩', inv['manhole']||0], ['原石','🪨', inv['ore']||0], ['高品质矿石','💠', inv['smelted']||0],
+    ['烤老鼠','🐭', inv['rat']||0],
+  ];
+  html += `<div class="statgrid">
+    <div class="cell"><b>💎 ${Math.floor(game.gems)}</b><span>绿宝石</span></div>
+    <div class="cell"><b>${PICKAXES.find(p=>p.id===game.pickaxe).emo} ${PICKAXES.find(p=>p.id===game.pickaxe).name}</b><span>当前镐子</span></div>
+    <div class="cell"><b>${game.vehicle?VEHICLES[game.vehicle].emo:''} ${game.vehicle?VEHICLES[game.vehicle].name:'无'}</b><span>载具</span></div>
+    <div class="cell"><b>💎 ${game.deposits.bank}</b><span>银行存款</span></div>
+  </div>`;
+  for(const [n,e,has] of boolList){ if(has) html += `<div class="inv-item"><span class="emo">${e}</span><span class="n">${n}</span><span class="tag">已拥有</span></div>`; }
+  for(const [n,e,c] of countList){ if(c>0) html += `<div class="inv-item"><span class="emo">${e}</span><span class="n">${n}</span><span class="x">×${c}</span></div>`; }
+  if(game.landClaimed) html += `<div class="inv-item"><span class="emo">📜</span><span class="n">别墅区地皮</span><span class="tag">已认领</span></div>`;
+  if(game.houseOwned) html += `<div class="inv-item"><span class="emo">🏠</span><span class="n">成品房</span><span class="tag">已购买</span></div>`;
+  if(game.rentDays>0) html += `<div class="inv-item"><span class="emo">🔑</span><span class="n">租房</span><span class="x">剩${game.rentDays}天</span></div>`;
+  if(game.contract) html += `<div class="inv-item"><span class="emo">🏪</span><span class="n">${game.contract.name}经营权</span><span class="tag">老板</span></div>`;
+  html += `<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+
+function showPhone(){
+  let html = `<h3>📱 棍母牌手机</h3><div class="sub">个人信息与状态</div>`;
+  html += `<div class="statgrid">
+    <div class="cell"><b>${currentUser||'玩家'}</b><span>用户名</span></div>
+    <div class="cell"><b>💎 ${Math.floor(game.totalEarned)}</b><span>累计赚取</span></div>
+    <div class="cell"><b>${game.home?'有':'无'}</b><span>固定住所</span></div>
+    <div class="cell"><b>${game.contract?'老板':'打工人'}</b><span>身份</span></div>
+  </div>`;
+  html += `<div class="helpbox">📌 小贴士：<br>· 饱食度会持续下降，记得吃饭<br>· 送外卖限时1分钟，超时会爆炸<br>· 偷井盖会减速，可去五金店卖钱<br>· 彩票 50💎 一张，搏一搏单车变摩托</div>`;
+  html += `<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+
+function showHelp(){
+  showModal(`<h3>🎮 游戏说明</h3><div class="sub">穷小子打工记 · 官方设定</div>
+    <div class="helpbox">
+      <kbd>W A S D</kbd>/<kbd>方向键</kbd> 移动　<kbd>E</kbd> 互动　<kbd>B</kbd> 乞讨　<kbd>H</kbd> 使用医疗箱　<kbd>Esc</kbd> 关闭<br><br>
+      🌀 穷人传送门进入城市（富豪传送门永久封锁）<br>
+      💼 打工：996公司 / 电子厂 / 矿场 / 网约车 / 医生 / 承包网吧<br>
+      🍔 外卖：接单限时60秒送达，超时爆炸死亡；可偷外卖但会被汪警卫抓<br>
+      🔩 井盖：偷了会减速，去五金店回收；掀盖可能掉下水道<br>
+      🎰 彩票：50💎一张，高风险高回报<br>
+      🏠 住宅：别墅区免费认领地皮建房 / 小区买成品房 / 租房<br>
+      💎 绿宝石：通用货币，可赠送、可乞讨、可摆摊赚取
+    </div>
+    <button class="btn close" onclick="closeModal()">知道了</button>`);
+}
+
+function hasItem(k){ return !!game.inventory[k]; }
+
+/* ============================================================
+   交互检测
+============================================================ */
+function distToRect(px,py,r){ const cx=Math.max(r.x,Math.min(px,r.x+r.w)); const cy=Math.max(r.y,Math.min(py,r.y+r.h)); return Math.hypot(px-cx,py-cy); }
+function findNear(){
+  let best=null, bestD=60;
+  if(game.zone==='spawn'){
+    for(const p of PORTALS){ const d=Math.hypot(player.x-p.x, player.y-p.y)-p.r; if(d<bestD){bestD=d;best={type:'portal',ref:p};} }
+  } else {
+    for(const b of BUILDINGS){ if(b.hidden) continue; const d=distToRect(player.x,player.y,b); if(d<bestD){bestD=d;best={type:'building',ref:b};} }
+    for(const s of STALLS){ const d=distToRect(player.x,player.y,s); if(d<bestD){bestD=d;best={type:'stall',ref:s};} }
+    for(const m of MANHOLES){ const d=Math.hypot(player.x-m.x,player.y-m.y)-20; if(d<bestD){bestD=d;best={type:'manhole',ref:m};} }
+    if(hasItem('stallframe')){
+      for(const s of STALL_SPOTS){ const d=Math.hypot(player.x-s.x,player.y-s.y); if(d<bestD){bestD=d;best={type:'stallspot',ref:s};} }
+    }
+    for(const b of BUILDINGS){ if(!b.hidden) continue; const d=distToRect(player.x,player.y,b); if(d<bestD){bestD=d;best={type:'building',ref:b};} }
+  }
+  nearTarget=best;
+  updateHint();
+}
+function updateHint(){
+  const h=document.getElementById('interactHint');
+  if(player.working || documentJob || player.begging){ h.classList.add('hidden'); return; }
+  if(!nearTarget){ h.classList.add('hidden'); return; }
+  const t=nearTarget;
+  if(t.type==='portal') h.textContent = t.ref.usable ? '按 E 进入穷人传送门 → 城市' : '富豪传送门：永久封锁，无法进入';
+  else if(t.type==='manhole') h.textContent = '按 E 偷井盖（有风险）';
+  else if(t.type==='stallspot') h.textContent = '按 E 在这里摆摊开店';
+  else if(t.type==='stall') h.textContent = '按 E 光顾 ' + t.ref.name;
+  else {
+    const b=t.ref;
+    if(b.type==='delivery') h.textContent='按 E 进 ' + b.name + '（接/偷外卖）';
+    else h.textContent='按 E 进入 ' + b.name;
+  }
+  h.classList.remove('hidden');
+}
+
+/* ============================================================
+   互动分发
+============================================================ */
+function interact(){
+  if(interior){ interiorInteract(); return; }
+  if(documentJob || player.working || player.begging){ stopWorking(); return; }
+  if(!nearTarget){ return; }
+  const t=nearTarget;
+  if(t.type==='portal'){ if(t.ref.usable){ enterCity(); } else { toast('富豪传送门永久封锁，任何人都无法进入（纯装饰）','bad'); } }
+  else if(t.type==='manhole') stealManhole();
+  else if(t.type==='stallspot') startStall();
+  else if(t.type==='stall') openStallShop(t.ref);
+  else if(t.type==='building') enterInterior(t.ref);
+}
+function enterCity(){
+  game.zone='city';
+  player.x=CITY_SPAWN.x; player.y=CITY_SPAWN.y;
+  const items={phone:1,idcard:1,bowl:1,recipe:1,sign:1,stallframe:1};
+  for(const k in items){ if(!game.inventory[k]) game.inventory[k]=1; }
+  for(let i=0;i<10;i++) spawnNpc();
+  toast('🎁 获得新手全套：棍母牌手机、身份证、乞讨碗、食谱、告示牌、摊位框架！','good');
+  toast('欢迎来到城市！马路对面就是商业区','info');
+}
+
+function handleBuilding(b){
+  switch(b.type){
+    case 'vehicle': openVehicle(b); break;
+    case 'lottery': openLottery(); break;
+    case 'food': openFood(b); break;
+    case 'bank': openBank(); break;
+    case 'contract': openContract(b); break;
+    case 'delivery': openDelivery(b); break;
+    case 'hardware': openHardware(); break;
+    case 'gadget': openGadget(); break;
+    case 'hospital': openHospital(); break;
+    case 'taxi': openTaxi(); break;
+    case 'market': openMarket(); break;
+    case 'peace': openPeace(); break;
+    case 'job996': openJob996(); break;
+    case 'mine': openMine(); break;
+    case 'factory': openFactory(); break;
+    case 'villa': openVilla(); break;
+    case 'estate': openEstate(); break;
+    case 'rent': openRent(); break;
+    case 'kongcheng': openKongcheng(); break;
+    case 'server': openServer(); break;
+    case 'repair': openRepair(); break;
+    case 'gas': openGas(); break;
+    case 'insurance': openInsurance(); break;
+    case 'court': openCourtInfo(); break;
+    case 'jail': openJail(); break;
+  }
+}
+function stopWorking(){
+  if(documentJob){ documentJob=null; toast('停止工作','info'); return; }
+  if(player.working){ player.working=null; toast('停止工作','info'); }
+  if(stallBiz){ stallBiz=null; toast('收摊了','info'); }
+  player.begging=false;
+}
+
+/* ============================================================
+   食物 / 摆摊 / 载具 / 彩票 / 银行
+============================================================ */
+function buyFood(name,emo,cost,h){
+  if(game.gems<cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=cost; game.hunger=Math.min(100,game.hunger+h);
+  toast(`吃下${name}，饱食度 +${h}`, h?'good':'info');
+  if(h) spawnFloating(player.x,player.y-26,`+${h}🍖`,'#ffb347');
+  updateHUD();
+}
+function openFood(b){
+  const menu = b.items ? FOOD_MENUS[b.items] : b.items;
+  let html=`<h3>${b.icon} ${b.name}</h3><div class="sub">${b.desc||''}</div>`;
+  for(const it of menu){
+    html+=`<div class="shop-item"><div class="emo">${it.e}</div><div class="info"><b>${it.n}</b><span>恢复 ${it.h} 饱食度</span></div>
+      <button class="buy" onclick="buyFood('${it.n}','${it.e}',${it.c},${it.h})">💎${it.c}</button></div>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function openStallShop(s){
+  let html=`<h3>${s.icon} ${s.name}</h3><div class="sub">官方摆摊商铺</div>`;
+  for(const it of s.items){
+    html+=`<div class="shop-item"><div class="emo">${it.e}</div><div class="info"><b>${it.n}</b><span>恢复 ${it.h} 饱食度</span></div>
+      <button class="buy" onclick="buyFood('${it.n}','${it.e}',${it.c},${it.h})">💎${it.c}</button></div>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+
+function openVehicle(b){
+  const v=VEHICLES[b.vehicle];
+  let html=`<h3>${b.icon} ${b.name}</h3><div class="sub">${b.desc}</div>`;
+  html+=`<div class="shop-item"><div class="emo">${v.emo}</div><div class="info"><b>${v.name}</b><span>移动速度提升至 ${v.speed}</span></div>
+    <button class="buy" id="vbuy" ${game.gems<v.cost?'disabled':''} onclick="buyVehicle('${b.vehicle}')">💎${v.cost}</button></div>`;
+  if(game.vehicle===b.vehicle) html+=`<div class="sub" style="color:#7ee081">✅ 已拥有此载具</div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyVehicle(v){
+  const vd=VEHICLES[v];
+  if(game.gems<vd.cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=vd.cost; game.vehicle=v;
+  game.fuel=vd.fuelMax; game.durability=vd.durMax; game.faults=[];
+  player.riding=true; player.pvx=player.x; player.pvy=player.y;
+  toast(`购买${vd.name}成功！${v==='ebike'?'记得去充电哦':'记得加油和保养哦'}`,'good');
+  updateHUD(); saveNow();
+  openVehicle(BUILDINGS.find(b=>b.type==='vehicle'&&b.vehicle===v));
+}
+
+function openLottery(){
+  let html=`<h3>🎰 彩票店</h3><div class="sub">50💎一张，中奖概率偏低，运气好一把几百💎</div>`;
+  html+=`<div class="helpbox">中奖概率约 8%，奖金 100~500💎 随机。高风险高回报，量力而行！</div>`;
+  html+=`<div class="row"><button class="btn" onclick="buyLottery()">买一张 (50💎)</button><button class="btn ghost" onclick="closeModal()">算了</button></div>`;
+  showModal(html);
+}
+function buyLottery(){
+  if(game.gems<50){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=50; updateHUD();
+  if(Math.random()<0.08){
+    const win=100+Math.floor(Math.random()*401);
+    game.gems+=win; game.totalEarned+=win;
+    toast(`🎉🎉 中大奖！获得 ${win} 绿宝石！`,'good');
+    spawnFloating(player.x,player.y-30,`+${win}💎`,'#ffd166');
+  } else {
+    toast('很遗憾，没中奖……','bad');
+  }
+  updateHUD(); saveNow();
+}
+
+function openBank(){
+  let html=`<h3>🏦 银行</h3><div class="sub">存款吃利息，年化利率 10%</div>`;
+  html+=`<div class="statgrid"><div class="cell"><b>💎 ${Math.floor(game.gems)}</b><span>身上现金</span></div><div class="cell"><b>💎 ${game.deposits.bank}</b><span>银行存款</span></div></div>`;
+  html+=`<div class="row"><button class="btn" onclick="bankDeposit(100)">存100</button><button class="btn" onclick="bankWithdraw(100)">取100</button></div>`;
+  html+=`<div class="row"><button class="btn" onclick="bankDeposit(999999)">全部存入</button><button class="btn" onclick="bankWithdraw(999999)">全部取出</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function bankDeposit(n){ const amt=Math.min(game.gems,n===999999?game.gems:n); if(amt<=0){toast('没有钱可存','bad');return;} game.gems-=amt; game.deposits.bank+=amt; toast(`存入 ${amt}💎`,'good'); updateHUD(); saveNow(); openBank(); }
+function bankWithdraw(n){ const amt=Math.min(game.deposits.bank,n===999999?game.deposits.bank:n); if(amt<=0){toast('没有存款','bad');return;} game.deposits.bank-=amt; game.gems+=amt; toast(`取出 ${amt}💎`,'good'); updateHUD(); saveNow(); openBank(); }
+
+/* ============================================================
+   承包（网吧）
+============================================================ */
+function openContract(b){
+  let html=`<h3>${b.icon} ${b.name}</h3><div class="sub">可承包下来自己当老板经营，坐收流水</div>`;
+  if(game.contract){
+    html+=`<div class="helpbox">你已承包：${game.contract.name}。经营中持续产生收益（1💎/秒）。</div>`;
+  } else {
+    html+=`<div class="helpbox">承包费用 <b>2000💎</b>，承包后该店成为你的产业，自动产生收益：<b>1💎/秒</b>。</div>`;
+    html+=`<button class="btn" ${game.gems<2000?'disabled':''} onclick="buyContract('${b.id}')">承包 ${b.name} (2000💎)</button>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyContract(id){
+  if(game.gems<2000){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=2000; game.contract={id,name:'网吧'};
+  toast('🎉 恭喜成为网吧老板！','good'); updateHUD(); saveNow(); closeModal();
+}
+
+/* ============================================================
+   外卖系统（炸弹 / 偷 / 汪警卫）
+============================================================ */
+function openDelivery(b){
+  let html=`<h3>${b.icon} ${b.name}</h3><div class="sub">外卖限时60秒送达，超时爆炸！</div>`;
+  html+=`<div class="helpbox">⚠️ 高危提示：<br>· 外卖拿在手上外观像炸弹💣<br>· 1分钟内未送达会<b>爆炸导致死亡</b><br>· 接单后地图会出现送达点 🎯<br>· 别人没取餐时可以偷外卖，但有概率被汪警卫抓捕</div>`;
+  if(delivery){ html+=`<div class="sub" style="color:#ff7e7e">⚠️ 你手上已有外卖，先送达！</div>`; }
+  html+=`<div class="row"><button class="btn" ${delivery?'disabled':''} onclick="takeDelivery('${b.id}')">接外卖单 (50💎)</button>
+    <button class="btn ghost" onclick="stealDelivery()">偷外卖（风险）</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function takeDelivery(id){
+  closeModal();
+  delivery = { x: 500+Math.random()*1800, y: 900+Math.random()*2500, expires: performance.now()+60000, fare:50 };
+  toast('🚨 已接到外卖！60秒内送到 🎯 目标点！','info');
+  document.getElementById('countdown').classList.remove('hidden');
+}
+function stealDelivery(){
+  if(performance.now() < stealCdUntil){ toast('偷外卖冷却中，请稍等…','bad'); return; }
+  closeModal();
+  stealCdUntil = performance.now() + 10000;
+  // 附近警卫越多越容易被抓
+  const px = interior ? interior.b.x + interior.b.w/2 : player.x;
+  const py = interior ? interior.b.y + interior.b.h/2 : player.y;
+  let guardNear = false;
+  for(const g of GUARDS){ if(Math.hypot(g.x-px, g.y-py) < 400) guardNear = true; }
+  const caughtChance = guardNear ? 0.55 : 0.3;
+  if(Math.random() < caughtChance){
+    sendToJail('偷外卖被汪警卫抓住');
+  } else {
+    const earn=20+Math.floor(Math.random()*30);
+    game.gems+=earn; game.totalEarned+=earn;
+    toast(`😈 偷外卖成功！转手卖得 ${earn}💎`,'good');
+    spawnFloating(player.x,player.y-26,`+${earn}💎`,'#ffd166');
+    updateHUD();
+  }
+}
+// 送进监狱
+function sendToJail(reason){
+  interior = null;
+  const b = BUILDINGS.find(x=>x.type==='jail');
+  player.x = b.x + b.w/2; player.y = b.y + b.h + 50;
+  player.working=null; player.begging=false; player.riding=false;
+  jailUntil = performance.now() + 15000;
+  game.gems = Math.max(0, game.gems - 50);
+  updateHUD();
+  toast('🚔 因「'+reason+'」被关进监狱 15 秒，罚款 50💎','bad');
+}
+function deliverArrive(){
+  game.gems+=delivery.fare; game.totalEarned+=delivery.fare;
+  toast(`✅ 准时送达！赚 ${delivery.fare}💎`,'good');
+  spawnFloating(player.x,player.y-26,`+${delivery.fare}💎`,'#ffd166');
+  delivery=null;
+  document.getElementById('countdown').classList.add('hidden');
+  updateHUD(); saveNow();
+}
+function deliveryExplode(){
+  toast('💥💥 外卖爆炸了！你被炸死了……','bad');
+  delivery=null;
+  document.getElementById('countdown').classList.add('hidden');
+  die('被外卖炸死');
+}
+
+/* ============================================================
+   井盖
+============================================================ */
+function stealManhole(){
+  if(Math.random()<0.15){
+    toast('🕳️ 掀井盖时掉进下水道了！','bad');
+    game.gems=Math.max(0,game.gems-20);
+    updateHUD();
+    player.x=CITY_SPAWN.x; player.y=CITY_SPAWN.y;
+    nearTarget=null; updateHint();
+    return;
+  }
+  game.inventory['manhole']=(game.inventory['manhole']||0)+1;
+  player.carryManholes++;
+  toast('🔩 偷到一个井盖！(减速，去五金店卖钱)','info');
+  const idx=MANHOLES.indexOf(nearTarget.ref); if(idx>=0) MANHOLES.splice(idx,1);
+  nearTarget=null; updateHint();
+}
+function openHardware(){
+  let html=`<h3>🔧 五金店</h3><div class="sub">回收井盖、升级镐子</div>`;
+  const mc=game.inventory['manhole']||0;
+  if(mc>0){
+    html+=`<div class="shop-item"><div class="emo">🔩</div><div class="info"><b>井盖 ×${mc}</b><span>每个回收 60💎</span></div>
+      <button class="buy" onclick="sellManholes()">卖 ${mc} 个 (${mc*60}💎)</button></div>`;
+  } else {
+    html+=`<div class="helpbox">你没有井盖。去马路上找井盖偷（按E），小心掉下水道。</div>`;
+  }
+  html+=`<div class="sub" style="margin-top:12px">🪓 升级镐子（挖矿用）</div>`;
+  const curIdx=PICKAXES.findIndex(x=>x.id===game.pickaxe);
+  for(const p of PICKAXES){
+    if(p.cost===0) continue;
+    const idx=PICKAXES.findIndex(x=>x.id===p.id);
+    const owned = curIdx >= idx;
+    html+=`<div class="shop-item"><div class="emo">${p.emo}</div><div class="info"><b>${p.name}</b><span>挖矿效率 ×${p.power}</span></div>
+      <button class="buy" ${(owned||game.gems<p.cost)?'disabled':''} onclick="buyPickaxe('${p.id}')">${owned?'已拥有':`💎${p.cost}`}</button></div>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function sellManholes(){
+  const mc=game.inventory['manhole']||0;
+  const val=mc*60;
+  game.gems+=val; game.totalEarned+=val;
+  game.inventory['manhole']=0; player.carryManholes=0;
+  toast(`卖出井盖，赚 ${val}💎！`,'good');
+  updateHUD(); saveNow(); openHardware();
+}
+function buyPickaxe(id){
+  const p=PICKAXES.find(x=>x.id===id);
+  if(game.gems<p.cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=p.cost; game.pickaxe=id;
+  toast(`购买${p.name}成功！`,'good');
+  updateHUD(); saveNow(); openHardware();
+}
+
+/* ============================================================
+   职业：996 / 电子厂 / 矿场 / 网约车 / 医生 / 摆摊
+============================================================ */
+function openJob996(){
+  let html=`<h3>💼 996办公公司</h3><div class="sub">提交工作文档，审核通过自动发工资</div>`;
+  html+=`<div class="helpbox">写文档需约8秒，提交后审核10秒，通过后发 <b>80💎</b> 工资。</div>`;
+  if(documentJob){ html+=`<div class="sub" style="color:#7ee081">⏳ 正在${documentJob.phase==='writing'?'写文档':'等待审核'}…</div>`; }
+  html+=`<button class="btn" ${documentJob?'disabled':''} onclick="startDocJob()">开始写文档</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function startDocJob(){
+  closeModal();
+  documentJob={phase:'writing',progress:0,time:0};
+  toast('📝 开始写工作文档…','info');
+}
+function openFactory(){
+  let html=`<h3>🏭 电子厂</h3><div class="sub">进厂打工，稳定工资</div>`;
+  html+=`<div class="helpbox">在厂里持续工作，时薪 <b>8💎/秒</b>，但会消耗饱食度。</div>`;
+  html+=`<button class="btn" onclick="startFactory()">进厂上班</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function startFactory(){
+  closeModal();
+  player.working={kind:'factory',rate:8};
+  toast('🏭 开始上班，努力赚钱！','info');
+}
+function openMine(){
+  let html=`<h3>⛏️ 野外矿场</h3><div class="sub">手动挖矿，原石直接卖或烧制提纯高价卖</div>`;
+  html+=`<div class="statgrid"><div class="cell"><b>${game.inventory['ore']||0}</b><span>原石</span></div><div class="cell"><b>${game.inventory['smelted']||0}</b><span>高品质矿石</span></div></div>`;
+  const p=PICKAXES.find(x=>x.id===game.pickaxe);
+  html+=`<div class="helpbox">当前镐子：${p.emo} ${p.name}（效率×${p.power}）<br>· 原石直接卖 20💎/个<br>· 烧制提纯后 45💎/个</div>`;
+  html+=`<div class="row"><button class="btn" onclick="mineOnce()">⛏️ 挖一下</button><button class="btn" onclick="sellOre()">卖原石</button></div>`;
+  html+=`<div class="row"><button class="btn" onclick="smeltOre()">🔥 烧制提纯</button><button class="btn" onclick="sellSmelted()">卖高品矿</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function mineOnce(){
+  const p=PICKAXES.find(x=>x.id===game.pickaxe);
+  const got=p.power;
+  game.inventory['ore']=(game.inventory['ore']||0)+got;
+  spawnFloating(player.x,player.y-26,`+${got}🪨`,'#aaa');
+  toast(`挖到 ${got} 块原石`,'info');
+  openMine();
+}
+function sellOre(){ const n=game.inventory['ore']||0; if(!n){toast('没有原石','bad');return;} const v=n*20; game.gems+=v; game.totalEarned+=v; game.inventory['ore']=0; toast(`卖出原石赚 ${v}💎`,'good'); updateHUD(); saveNow(); openMine(); }
+function smeltOre(){
+  const n=game.inventory['ore']||0;
+  if(!n){ toast('没有原石可烧制','bad'); return; }
+  const out=Math.floor(n/2);
+  game.inventory['ore']=n-out*2; game.inventory['smelted']=(game.inventory['smelted']||0)+out;
+  toast(`烧制成功，得到 ${out} 块高品质矿石`,'good'); openMine();
+}
+function sellSmelted(){ const n=game.inventory['smelted']||0; if(!n){toast('没有高品矿','bad');return;} const v=n*45; game.gems+=v; game.totalEarned+=v; game.inventory['smelted']=0; toast(`卖出高品矿赚 ${v}💎`,'good'); updateHUD(); saveNow(); openMine(); }
+
+function openTaxi(){
+  let html=`<h3>🚕 网约车站</h3><div class="sub">接送乘客赚取车费</div>`;
+  html+=`<div class="helpbox">接单后地图出现乘客 🎯，走到乘客处即可完成接送，赚 <b>40💎</b>。</div>`;
+  if(taxi){ html+=`<div class="sub" style="color:#7ee081">⏳ 正在接送乘客…</div>`; }
+  html+=`<button class="btn" ${taxi?'disabled':''} onclick="takeTaxi()">接一单</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function takeTaxi(){
+  closeModal();
+  taxi={ x:500+Math.random()*1800, y:900+Math.random()*2500, fare:40 };
+  toast('🚕 去接送乘客 🎯！','info');
+}
+function taxiArrive(){
+  game.gems+=taxi.fare; game.totalEarned+=taxi.fare;
+  toast(`✅ 送达乘客，赚 ${taxi.fare}💎`,'good');
+  spawnFloating(player.x,player.y-26,`+${taxi.fare}💎`,'#ffd166');
+  taxi=null; updateHUD(); saveNow();
+}
+
+function openHospital(){
+  let html=`<h3>🏥 医院</h3><div class="sub">医生职业，医疗箱回血救治</div>`;
+  html+=`<div class="helpbox">购买医疗箱后，可按 <b>H</b> 使用：恢复 50 生命值。<br>医生职业：持有医疗箱即可为自己/他人救治。</div>`;
+  if(hasItem('medkit')) html+=`<div class="sub" style="color:#7ee081">✅ 你已持有医疗箱（按 H 使用）</div>`;
+  else html+=`<button class="btn" ${game.gems<150?'disabled':''} onclick="buyMedkit()">购买医疗箱 (150💎)</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyMedkit(){ if(game.gems<150){toast('绿宝石不够！','bad');return;} game.gems-=150; game.inventory['medkit']=1; toast('购买医疗箱成功，按 H 使用','good'); updateHUD(); saveNow(); openHospital(); }
+function useMedkit(){
+  if(!hasItem('medkit')){ toast('没有医疗箱','bad'); return; }
+  if(game.hp>=100){ toast('生命值已满','info'); return; }
+  game.hp=Math.min(100,game.hp+50);
+  toast('💉 使用医疗箱，生命 +50','good');
+  updateHUD();
+}
+
+function startStall(){
+  if(!hasItem('stallframe')){ toast('需要自定义摊位框架','bad'); return; }
+  stallBiz={rate:2};
+  player.x=nearTarget.ref.x; player.y=nearTarget.ref.y;
+  toast('🛒 摆摊开业！持续赚绿宝石（2💎/秒）','good');
+  nearTarget=null; updateHint();
+}
+function openGadget(){
+  let html=`<h3>🧸 恶搞道具店</h3><div class="sub">全游戏最娱乐、趣味商店</div>`;
+  for(const it of GADGET_ITEMS){
+    html+=`<div class="shop-item"><div class="emo">${it.e}</div><div class="info"><b>${it.n}</b><span>${it.d}</span></div>
+      <button class="buy" ${game.gems<it.c?'disabled':''} onclick="buyGadget('${it.n}','${it.e}',${it.c})">💎${it.c}</button></div>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyGadget(n,e,c){
+  if(game.gems<c){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=c; updateHUD();
+  if(n==='自定义音乐音箱'){
+    const url=prompt('粘贴网易云音乐外链（URL）即可播放任意歌曲：');
+    toast(url?`🔊 正在播放你的音乐！`:'已购买自定义音乐音箱（未设置外链）','good');
+  } else if(n==='白色臭兔子'){
+    toast('🐇 获得白色臭兔子！只能手持，无任何作用，纯娱乐收藏','good');
+  } else {
+    toast(`🎁 获得收藏摆件：${n}`,'good');
+  }
+  saveNow(); openGadget();
+}
+
+/* ============================================================
+   住宅系统
+============================================================ */
+function openVilla(){
+  let html=`<h3>🏡 别墅区</h3><div class="sub">地皮免费认领，自建房屋、装修、家具需高额绿宝石</div>`;
+  if(game.landClaimed && game.houseOwned){
+    html+=`<div class="helpbox">✅ 你已在别墅区拥有豪宅！可设为此处为重生点。</div>`;
+    html+=`<button class="btn" onclick="setHome('别墅区豪宅')">设为重生点</button>`;
+  } else if(game.landClaimed){
+    html+=`<div class="helpbox">已认领地皮。建房+装修费用 <b>8000💎</b>。</div>`;
+    html+=`<button class="btn" ${game.gems<8000?'disabled':''} onclick="buildVilla()">建房装修 (8000💎)</button>`;
+  } else {
+    html+=`<div class="helpbox">地皮免费认领！认领后可花 8000💎 建房装修成豪宅。</div>`;
+    html+=`<button class="btn" onclick="claimLand()">免费认领地皮</button>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function claimLand(){ game.landClaimed=true; toast('📜 认领别墅区地皮成功！','good'); openVilla(); }
+function buildVilla(){ if(game.gems<8000){toast('绿宝石不够！','bad');return;} game.gems-=8000; game.houseOwned=true; game.home='别墅区豪宅'; toast('🏡 豪宅建成！已设为重生点','good'); updateHUD(); saveNow(); openVilla(); }
+
+function openEstate(){
+  let html=`<h3>🏘️ 居民小区</h3><div class="sub">购买成品房，拎包入住，存放物品</div>`;
+  if(game.houseOwned){
+    html+=`<div class="helpbox">✅ 你已拥有房产。</div>`;
+    html+=`<button class="btn" onclick="setHome('居民小区')">设为重生点</button>`;
+  } else {
+    html+=`<div class="helpbox">成品房价格 <b>3000💎</b>，入住后拥有固定住所。</div>`;
+    html+=`<button class="btn" ${game.gems<3000?'disabled':''} onclick="buyHouse()">购买成品房 (3000💎)</button>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyHouse(){ if(game.gems<3000){toast('绿宝石不够！','bad');return;} game.gems-=3000; game.houseOwned=true; game.home='居民小区'; toast('🏠 购房成功！已设为重生点','good'); updateHUD(); saveNow(); openEstate(); }
+function setHome(n){ game.home=n; toast(`已把「${n}」设为重生点`,'good'); closeModal(); }
+
+function openRent(){
+  let html=`<h3>🏠 租房店</h3><div class="sub">租赁房屋短期居住</div>`;
+  html+=`<div class="helpbox">租金 <b>80💎/天</b>。当前租期剩余：<b>${game.rentDays}</b> 天。</div>`;
+  html+=`<button class="btn" ${game.gems<80?'disabled':''} onclick="rentHouse()">租 1 天 (80💎)</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function rentHouse(){ if(game.gems<80){toast('绿宝石不够！','bad');return;} game.gems-=80; game.rentDays++; game.home=game.home||'出租屋'; toast('🔑 租房成功！','good'); updateHUD(); saveNow(); openRent(); }
+
+/* ============================================================
+   菜市场 / 和平饭店 / 彩蛋
+============================================================ */
+function openMarket(){
+  let html=`<h3>🥬 菜市场</h3><div class="sub">卖生活食材</div>`;
+  for(const it of MARKET_ITEMS){
+    html+=`<div class="shop-item"><div class="emo">${it.e}</div><div class="info"><b>${it.n}</b><span>${it.h?`直接吃恢复${it.h}饱食度`:'调味料'}</span></div>
+      <button class="buy" ${game.gems<it.c?'disabled':''} onclick="buyFood('${it.n}','${it.e}',${it.c},${it.h})">💎${it.c}</button></div>`;
+  }
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function openPeace(){
+  let html=`<h3>🏨 和平饭店</h3><div class="sub">特色商品：烤老鼠（5绿宝石一个）</div>`;
+  html+=`<div class="shop-item"><div class="emo">🐭</div><div class="info"><b>烤老鼠</b><span>5💎一个，恢复30饱食度</span></div>
+    <button class="buy" ${game.gems<5?'disabled':''} onclick="buyRat()">💎5</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyRat(){ if(game.gems<5){toast('绿宝石不够！','bad');return;} game.gems-=5; game.hunger=Math.min(100,game.hunger+30); game.inventory['rat']=(game.inventory['rat']||0)+1; toast('🍽️ 享用烤老鼠，饱食度+30','good'); updateHUD(); saveNow(); openPeace(); }
+
+function openKongcheng(){
+  let html=`<h3>🏰 空城计豪华小区</h3><div class="sub">地图彩蛋</div>`;
+  html+=`<div class="helpbox">大门超级豪华气派，但里面全是空地、杂草，一个建筑都没有。门口有两只<b>汪警卫 NPC</b>站岗（负责抓捕偷外卖的玩家）。</div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function openServer(){
+  let html=`<h3>🖧 服务器房</h3><div class="sub">地图彩蛋</div>`;
+  html+=`<div class="helpbox">这里堆满了土豆🥔和破烂，据说服务器的"核心"就是这些土豆……</div>`;
+  html+=`<button class="btn" onclick="digPotato()">翻找破烂</button>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function digPotato(){
+  if(Math.random()<0.3){
+    const v=5+Math.floor(Math.random()*20);
+    game.gems+=v;
+    toast(`🥔 从土豆堆里翻出 ${v}💎！`,'good');
+    updateHUD();
+  } else {
+    toast('翻出一堆坏土豆，什么也没有……','info');
+  }
+}
+
+/* ============================================================
+   乞讨
+============================================================ */
+function beg(){
+  if(!hasItem('bowl')){ toast('需要乞讨碗才能乞讨','bad'); return; }
+  if(player.working||documentJob){ toast('工作中不能乞讨','bad'); return; }
+  if(player.begging) return;
+  player.begging=true;
+  setTimeout(()=>{
+    player.begging=false;
+    if(Math.random()<0.6){
+      const v=1+Math.floor(Math.random()*20);
+      game.gems+=v; game.totalEarned+=v;
+      toast(`🥣 好心人施舍了 ${v}💎！`,'good');
+      spawnFloating(player.x,player.y-26,`+${v}💎`,'#7ee081');
+    } else {
+      toast('🥣 没人施舍……再试试吧','info');
+    }
+    updateHUD();
+  }, 2500);
+  toast('🥣 正在乞讨…','info');
+}
+
+/* ============================================================
+   死亡
+============================================================ */
+function die(reason){
+  let loss;
+  if(Math.random()<0.05){ loss=game.gems; }
+  else { loss=10+Math.floor(Math.random()*11); loss=Math.min(loss,game.gems); }
+  game.gems=Math.max(0,game.gems-loss);
+  toast(`☠️ ${reason}！损失 ${loss}💎`,'bad');
+  game.hp=100; game.hunger=Math.max(30,game.hunger);
+  if(game.home==='别墅区豪宅'){ player.x=500; player.y=2960; }
+  else if(game.home==='居民小区'){ player.x=840; player.y=2960; }
+  else if(game.home==='出租屋'){ player.x=1150; player.y=2955; }
+  else { player.x=CITY_SPAWN.x; player.y=CITY_SPAWN.y; }
+  player.carryManholes=0; player.working=null; documentJob=null; stallBiz=null; taxi=null; delivery=null;
+  interior=null; jailUntil=0; player.riding=false;
+  document.getElementById('countdown').classList.add('hidden');
+  updateHUD(); saveNow();
+}
+
+/* ============================================================
+   输入
+============================================================ */
+window.addEventListener('keydown', e=>{
+  const k=e.key.toLowerCase();
+  const typing = document.activeElement && document.activeElement.id==='chatInput';
+  if(typing){
+    if(k==='enter'){ sendChat(); }
+    else if(k==='escape'){ document.getElementById('chatInput').blur(); }
+    return;
+  }
+  if(e.repeat) return;
+  keys[k]=true;
+  if(k==='e'){ if(!document.getElementById('modalRoot').classList.contains('hidden')) return; interact(); }
+  else if(k==='b'){ beg(); }
+  else if(k==='h'){ useMedkit(); }
+  else if(k==='f'){ if(document.getElementById('modalRoot').classList.contains('hidden')) attack(); }
+  else if(k==='g'){ if(document.getElementById('modalRoot').classList.contains('hidden')) toggleVehicle(); }
+  else if(k==='q'){ if(document.getElementById('modalRoot').classList.contains('hidden')) useSelectedItem(); }
+  else if(k>='1' && k<='9'){ if(document.getElementById('modalRoot').classList.contains('hidden')) selectSlot(parseInt(k)-1); }
+  else if(k==='enter'){ if(wsConnected && document.getElementById('modalRoot').classList.contains('hidden')) document.getElementById('chatInput').focus(); }
+  else if(k==='escape'){ if(!document.getElementById('modalRoot').classList.contains('hidden')){ closeModal(); } else { stopWorking(); } }
+});
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
+document.getElementById('modalRoot').addEventListener('click', e=>{ if(e.target.id==='modalRoot') closeModal(); });
+
+// 触屏摇杆
+const joy=document.getElementById('joystick'), knob=joy.querySelector('.knob');
+let joyVec={x:0,y:0}, joyActive=false;
+joy.addEventListener('pointerdown', e=>{ joyActive=true; joy.setPointerCapture(e.pointerId); handleJoy(e); });
+joy.addEventListener('pointermove', e=>{ if(joyActive) handleJoy(e); });
+joy.addEventListener('pointerup', ()=>{ joyActive=false; joyVec={x:0,y:0}; knob.style.transform='translate(-50%,-50%)'; });
+joy.addEventListener('pointercancel', ()=>{ joyActive=false; joyVec={x:0,y:0}; knob.style.transform='translate(-50%,-50%)'; });
+function handleJoy(e){
+  const r=joy.getBoundingClientRect();
+  let dx=e.clientX-r.left-r.width/2, dy=e.clientY-r.top-r.height/2;
+  const max=38, len=Math.hypot(dx,dy);
+  if(len>max){ dx=dx/len*max; dy=dy/len*max; }
+  knob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  joyVec={x:dx/max,y:dy/max};
+  if(Math.hypot(joyVec.x,joyVec.y)<0.2) joyVec={x:0,y:0};
+}
+document.getElementById('btnE').addEventListener('pointerdown', ()=>{ if(document.getElementById('modalRoot').classList.contains('hidden')) interact(); });
+document.getElementById('btnB').addEventListener('pointerdown', ()=>beg());
+document.getElementById('btnAttack').addEventListener('pointerdown', ()=>{ if(document.getElementById('modalRoot').classList.contains('hidden')) attack(); });
+document.getElementById('btnRide').addEventListener('pointerdown', ()=>{ if(document.getElementById('modalRoot').classList.contains('hidden')) toggleVehicle(); });
+
+/* ============================================================
+   碰撞
+============================================================ */
+function getSolids(){
+  const solids=[];
+  if(game.zone==='spawn') return solids;
+  for(const b of BUILDINGS){ solids.push(b); }
+  for(const s of STALLS){ solids.push(s); }
+  for(const t of TREES){ solids.push({x:t[0]-14,y:t[1]-14,w:28,h:28}); }
+  return solids;
+}
+function resolveCollisions(){
+  const solids=getSolids();
+  let collided=false;
+  for(const s of solids){
+    const cx=Math.max(s.x,Math.min(player.x,s.x+s.w));
+    const cy=Math.max(s.y,Math.min(player.y,s.y+s.h));
+    let dx=player.x-cx, dy=player.y-cy;
+    const d=Math.hypot(dx,dy);
+    if(d<player.r){
+      collided=true;
+      if(d===0){
+        const l=player.x-s.x, r=s.x+s.w-player.x, t=player.y-s.y, b=s.y+s.h-player.y;
+        const m=Math.min(l,r,t,b);
+        if(m===l) player.x=s.x-player.r; else if(m===r) player.x=s.x+s.w+player.r;
+        else if(m===t) player.y=s.y-player.r; else player.y=s.y+s.h+player.r;
+      } else { player.x=cx+dx/d*player.r; player.y=cy+dy/d*player.r; }
+    }
+  }
+  player.x=Math.max(player.r,Math.min(WORLD.w-player.r,player.x));
+  player.y=Math.max(player.r,Math.min(WORLD.h-player.r,player.y));
+  return collided;
+}
+
+/* ============================================================
+   车辆 / 治安 / 法庭 / 建筑内视角
+============================================================ */
+function getMoveSpeed(){
+  if(!game.vehicle || !player.riding) return 240;
+  const v = VEHICLES[game.vehicle];
+  let sp = v.speed;
+  for(const f of game.faults){ if(FAULTS[f]) sp *= FAULTS[f].pen; }
+  if(game.fuel <= 0) return 120;   // 没电/没油只能推车
+  return sp;
+}
+function checkFaults(){
+  const d = game.durability;
+  const add = (f)=>{ if(!game.faults.includes(f)){ game.faults.push(f); toast('⚠️ 车辆故障：'+FAULTS[f].name+'，快去汽修店！','bad'); } };
+  if(d < 30) add('engine');
+  else if(d < 50) add('oil');
+  else if(d < 70) add('tire');
+}
+// 开车撞人
+function checkVehicleHit(){
+  if(getMoveSpeed() < 200) return;
+  for(let i=npcs.length-1;i>=0;i--){
+    const n = npcs[i];
+    if(Math.hypot(n.x-player.x, n.y-player.y) < 32){
+      game.durability = Math.max(0, game.durability - 5);
+      killNpc(n);
+      toast('💥 你撞到人了！','bad');
+      goCourt('vehicle', n.name, n.innocent);
+      return;
+    }
+  }
+}
+function killNpc(n){
+  const i = npcs.indexOf(n);
+  if(i>=0) npcs.splice(i,1);
+  spawnFloating(n.x, n.y-16, '💀', '#ff5e62');
+}
+// 汪警卫巡逻
+function updateGuards(dt){
+  for(const g of GUARDS){
+    const t = g.patrol[g.wp];
+    const dx=t[0]-g.x, dy=t[1]-g.y, d=Math.hypot(dx,dy);
+    if(d < 6){ g.wp = (g.wp+1) % g.patrol.length; continue; }
+    g.x += dx/d*95*dt; g.y += dy/d*95*dt;
+  }
+}
+// 镐子攻击（等级越高伤害越高）
+function attack(){
+  if(attackCd>0) return;
+  if(game.zone!=='city' || interior) return;
+  if(player.riding){ toast('开车时不能抡镐子，先按 G 下车','info'); return; }
+  attackCd = 0.55;
+  const dmg = PICKAXES.find(p=>p.id===game.pickaxe).power;
+  let target=null, best=62;
+  for(const n of npcs){
+    const d=Math.hypot(n.x-player.x, n.y-player.y);
+    if(d<best){ best=d; target=n; }
+  }
+  if(target){
+    target.hp -= dmg;
+    spawnFloating(target.x, target.y-18, '-'+dmg, '#ff5e62');
+    if(target.hp <= 0){ killNpc(target); goCourt('pickaxe', target.name, target.innocent); }
+  } else {
+    toast('挥了个空','info');
+  }
+}
+// 法庭审判
+function goCourt(kind, victimName, innocent){
+  player.working=null; documentJob=null; stallBiz=null; taxi=null; player.riding=false;
+  const b = BUILDINGS.find(x=>x.type==='court');
+  player.x = b.x + b.w/2; player.y = b.y + b.h + 50;
+  let verdict, penalty=0, insMsg='';
+  if(innocent){
+    verdict = '全责（撞/打死无辜路人）';
+    penalty = kind==='vehicle' ? 300 : 220;
+    if(kind==='vehicle' && game.insurance.vehicle){ penalty=Math.floor(penalty*0.2); insMsg='车辆保险已赔付 80%'; }
+    else if(kind==='pickaxe' && game.insurance.personal){ penalty=Math.floor(penalty*0.3); insMsg='人保已赔付 70%'; }
+  } else {
+    verdict = '无责（死者有前科）';
+    penalty = 0;
+  }
+  penalty = Math.min(penalty, Math.floor(game.gems));
+  game.gems -= penalty;
+  updateHUD(); saveNow();
+  showModal(`<h3>⚖️ 法庭审判</h3>
+    <div class="sub">你被传唤到法庭接受审判</div>
+    <div class="helpbox">
+      案件：${kind==='vehicle'?'开车撞人':'镐子伤人'}<br>
+      死者：${victimName}${innocent?'（无辜市民）':'（在逃犯）'}<br>
+      判决：<b>${verdict}</b><br>
+      赔偿：<b>${penalty}💎</b> ${insMsg?('· '+insMsg):''}<br>
+      ${penalty===0?'（无需赔偿，当庭释放）':'（已从你账户扣除）'}
+    </div>
+    <button class="btn close" onclick="closeModal()">接受判决</button>`);
+}
+
+/* —— 建筑内视角 —— */
+const ROOM_W = 900, ROOM_H = 600;
+function enterInterior(b){
+  interior = { b, returnX: player.x, returnY: player.y };
+  if(player.riding){ player.riding=false; player.pvx=player.x; player.pvy=player.y; }
+  player.x = ROOM_W/2; player.y = ROOM_H - 70;
+  player.moving = false;
+  toast('进入 '+b.name, 'info');
+}
+// 上/下车
+function toggleVehicle(){
+  if(!game.vehicle){ toast('你还没有载具','bad'); return; }
+  if(interior){ toast('在店里不能上下车','info'); return; }
+  if(player.riding){
+    player.riding = false;
+    player.pvx = player.x; player.pvy = player.y;
+    player.x += 28; player.y += 8;
+    toast('🚶 已下车','info');
+  } else {
+    if(Math.hypot(player.x-player.pvx, player.y-player.pvy) < 90){
+      player.riding = true;
+      player.x = player.pvx; player.y = player.pvy;
+      toast('🚗 已上车','info');
+    } else {
+      toast('离载具太远，走到车旁再按 G','info');
+    }
+  }
+  updateHUD();
+}
+function exitInterior(){
+  if(!interior) return;
+  player.x = interior.returnX; player.y = interior.returnY;
+  interior = null;
+  updateHint();
+}
+function interiorCounter(){ return { x: ROOM_W/2, y: 100 }; }
+function interiorDoor(){ return { x: ROOM_W/2, y: ROOM_H - 30 }; }
+function updateInterior(dt){
+  let mx=0,my=0;
+  if(keys['a']||keys['arrowleft']) mx-=1;
+  if(keys['d']||keys['arrowright']) mx+=1;
+  if(keys['w']||keys['arrowup']) my-=1;
+  if(keys['s']||keys['arrowdown']) my+=1;
+  if(joyVec.x||joyVec.y){ mx=joyVec.x; my=joyVec.y; }
+  const len=Math.hypot(mx,my);
+  if(len>0){
+    mx/=len; my/=len;
+    player.x += mx*220*dt; player.y += my*220*dt;
+    player.moving=true;
+    if(Math.abs(mx)>Math.abs(my)) player.facing=mx>0?'right':'left';
+    else player.facing=my>0?'down':'up';
+    player.x=Math.max(70,Math.min(ROOM_W-70,player.x));
+    player.y=Math.max(70,Math.min(ROOM_H-40,player.y));
+  } else player.moving=false;
+  const c=interiorCounter(), dr=interiorDoor();
+  const hint=document.getElementById('interactHint');
+  if(Math.hypot(player.x-c.x,player.y-c.y)<110){ hint.textContent='按 E 办理事务 / 购买'; hint.classList.remove('hidden'); }
+  else if(Math.hypot(player.x-dr.x,player.y-dr.y)<90){ hint.textContent='按 E 离开'; hint.classList.remove('hidden'); }
+  else hint.classList.add('hidden');
+}
+function interiorInteract(){
+  if(!interior) return;
+  const c=interiorCounter(), dr=interiorDoor();
+  if(Math.hypot(player.x-c.x,player.y-c.y)<110){ handleBuilding(interior.b); }
+  else if(Math.hypot(player.x-dr.x,player.y-dr.y)<90){ exitInterior(); }
+  else toast('走到柜台或门口再按 E','info');
+}
+
+/* —— 新建筑功能 —— */
+function openRepair(){
+  const cost = Math.round((100-game.durability)*8 + game.faults.length*60);
+  let html=`<h3>🔧 汽修店</h3><div class="sub">修车、修故障</div>`;
+  html+=`<div class="helpbox">当前耐久：<b>${Math.floor(game.durability)}/100</b><br>故障：${game.faults.length?game.faults.map(f=>'<b style="color:#ff7e7e">'+FAULTS[f].name+'</b>').join('、'):'<span style="color:#7ee081">无</span>'}<br>修理费：<b>${cost}💎</b></div>`;
+  if(game.vehicle) html+=`<button class="btn" ${game.gems<cost?'disabled':''} onclick="doRepair(${cost})">修理 (${cost}💎)</button>`;
+  else html+=`<div class="sub">你还没有车。</div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function doRepair(cost){
+  if(game.gems<cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=cost; game.durability=100; game.faults=[];
+  toast('🔧 车辆已修好！','good'); updateHUD(); saveNow(); closeModal();
+}
+function openGas(){
+  const isEbike = game.vehicle === 'ebike';
+  const label = isEbike ? '电量' : '油量';
+  const cost = Math.round((100-game.fuel)*2);
+  let html=`<h3>${isEbike?'🔌 充电桩':'⛽ 加油站'}</h3><div class="sub">${isEbike?'给电动车充电':'给爱车加油'}</div>`;
+  html+=`<div class="helpbox">当前${label}：<b>${Math.floor(game.fuel)}/100</b><br>${isEbike?'充满':'加满'}费用：<b>${cost}💎</b></div>`;
+  if(game.vehicle) html+=`<button class="btn" ${game.gems<cost?'disabled':''} onclick="doGas(${cost})">${isEbike?'🔌 充满电':'⛽ 加满油'} (${cost}💎)</button>`;
+  else html+=`<div class="sub">你还没有载具。</div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function doGas(cost){
+  if(game.gems<cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=cost; game.fuel=100;
+  toast(game.vehicle==='ebike'?'🔌 电动车已充满电！':'⛽ 已加满油！','good'); updateHUD(); saveNow(); closeModal();
+}
+function openInsurance(){
+  let html=`<h3>🛡️ 保险公司</h3><div class="sub">办理车辆保险和人保</div>`;
+  html+=`<div class="helpbox">🛡️ <b>车辆保险</b>（2000💎）：车辆事故时赔付 80% 赔偿金<br>🧑 <b>人保</b>（1500💎）：伤人时赔付 70% 赔偿金</div>`;
+  html+=`<div class="shop-item"><div class="emo">🛡️</div><div class="info"><b>车辆保险</b><span>${game.insurance.vehicle?'已投保':'事故赔付 80%'}</span></div><button class="buy" ${game.insurance.vehicle?'disabled':''} onclick="buyIns('vehicle',2000)">${game.insurance.vehicle?'已投保':'💎2000'}</button></div>`;
+  html+=`<div class="shop-item"><div class="emo">🧑</div><div class="info"><b>人保</b><span>${game.insurance.personal?'已投保':'伤人赔付 70%'}</span></div><button class="buy" ${game.insurance.personal?'disabled':''} onclick="buyIns('personal',1500)">${game.insurance.personal?'已投保':'💎1500'}</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function buyIns(kind, cost){
+  if(game.insurance[kind]){ toast('已经投保了','info'); return; }
+  if(game.gems<cost){ toast('绿宝石不够！','bad'); return; }
+  game.gems-=cost; game.insurance[kind]=true;
+  toast('🛡️ 投保成功！','good'); updateHUD(); saveNow(); openInsurance();
+}
+function openCourtInfo(){
+  showModal(`<h3>⚖️ 法庭</h3><div class="sub">正义裁决之地</div>
+    <div class="helpbox">开车撞人、镐子伤人等行为会导致你被传唤到这里。如果死者是无辜路人，你将负全责并赔偿；若死者有前科，则无需赔偿。<br>购买保险可大幅减少赔偿金。</div>
+    <button class="btn close" onclick="closeModal()">关闭</button>`);
+}
+function openJail(){
+  showModal(`<h3>🚔 监狱</h3><div class="sub">犯事者的归宿</div>
+    <div class="helpbox">偷外卖被汪警卫抓住、或犯下其他违法的事，就会被关进这里。<br>汪警卫在全城巡逻，做坏事时小心别被逮到！</div>
+    <button class="btn close" onclick="closeModal()">关闭</button>`);
+}
+
+/* ============================================================
+   物品快捷栏（1-9 切换 / 使用，含车钥匙）
+============================================================ */
+let hotbarSel = 0;
+let lastHotbarSig = '';
+function ownedHotbarItems(){
+  const inv = (game && game.inventory) || {};
+  const arr = [];
+  const add=(id,name,emo,cnt)=>{ arr.push({id,name,emo,cnt:cnt||0}); };
+  if(inv.phone) add('phone','棍母牌手机','📱');
+  if(inv.idcard) add('idcard','身份证','🪪');
+  if(inv.bowl) add('bowl','乞讨碗','🥣');
+  if(inv.recipe) add('recipe','食物食谱','📖');
+  if(inv.sign) add('sign','告示牌','🪧');
+  if(inv.stallframe) add('stallframe','摊位框架','🛒');
+  if(inv.medkit) add('medkit','医疗箱','🧰');
+  if(game && game.vehicle) add('key','车钥匙','🔑');
+  if((inv.manhole||0)>0) add('manhole','井盖','🔩',inv.manhole);
+  if((inv.ore||0)>0) add('ore','原石','🪨',inv.ore);
+  if((inv.smelted||0)>0) add('smelted','高品矿','💠',inv.smelted);
+  if((inv.rat||0)>0) add('rat','烤老鼠','🐭',inv.rat);
+  return arr.slice(0,9);
+}
+function refreshHotbar(){
+  if(!game) return;
+  const items = ownedHotbarItems();
+  const sig = items.map(i=>i.id+':'+i.cnt).join('|');
+  if(sig===lastHotbarSig) return;
+  lastHotbarSig = sig;
+  if(hotbarSel >= items.length) hotbarSel = Math.max(0, items.length-1);
+  const box = document.getElementById('hotbar');
+  if(box){
+    box.innerHTML = items.map((it,i)=>
+      `<div class="slot${i===hotbarSel?' active':''}" data-i="${i}" title="${it.name}"><span class="num">${i+1}</span><span class="emo">${it.emo}</span>${it.cnt?`<span class="cnt">${it.cnt}</span>`:''}</div>`
+    ).join('');
+    box.querySelectorAll('.slot').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const i = parseInt(el.dataset.i);
+        if(i === hotbarSel) useSelectedItem();
+        else selectSlot(i);
+      });
+    });
+  }
+  updateHotbarName();
+}
+function updateHotbarName(){
+  const items = ownedHotbarItems();
+  const el = document.getElementById('hotbarName');
+  if(!el) return;
+  if(!items.length){ el.textContent='—'; return; }
+  const it = items[hotbarSel];
+  el.textContent = it ? '手持：'+it.name : '—';
+}
+function selectSlot(i){
+  const items = ownedHotbarItems();
+  if(i<0 || i>=items.length) return;
+  hotbarSel = i;
+  const box = document.getElementById('hotbar');
+  if(box) box.querySelectorAll('.slot').forEach((el,j)=> el.classList.toggle('active', j===i));
+  updateHotbarName();
+}
+function useSelectedItem(){
+  if(!game) return;
+  const items = ownedHotbarItems();
+  const it = items[hotbarSel];
+  if(!it){ toast('物品栏是空的','info'); return; }
+  switch(it.id){
+    case 'phone': showPhone(); break;
+    case 'idcard': toast('🪪 身份证：'+(currentUser||'玩家'),'info'); break;
+    case 'bowl': beg(); break;
+    case 'recipe': toast('📖 食谱：去菜市场买食材做饭','info'); break;
+    case 'sign': toast('🪧 你举起告示牌招揽顾客','info'); break;
+    case 'stallframe': if(nearTarget && nearTarget.type==='stallspot') startStall(); else toast('走到摆摊点再使用摊位框架','info'); break;
+    case 'medkit': useMedkit(); break;
+    case 'key': toggleVehicle(); break;
+    case 'manhole': toast('🔩 井盖：去五金店回收换钱','info'); break;
+    case 'ore': toast('🪨 原石：去矿场可卖或烧制','info'); break;
+    case 'smelted': toast('💠 高品质矿石：去矿场出售','info'); break;
+    case 'rat': toast('🐭 烤老鼠：和平饭店特色','info'); break;
+    default: toast(it.name,'info');
+  }
+}
+
+/* ============================================================
+   主循环
+============================================================ */
+function loop(now){
+  const dt=Math.min(0.05,(now-lastTime)/1000); lastTime=now;
+  if(game){ update(dt); render(); }
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  if(attackCd>0) attackCd-=dt;
+  // —— 建筑内视角 ——
+  if(interior){ updateInterior(dt); updateHUD(); return; }
+  // —— 监狱 ——
+  if(jailUntil){
+    if(performance.now() >= jailUntil){ jailUntil=0; document.getElementById('countdown').classList.add('hidden'); toast('✅ 刑满释放！','good'); }
+    else {
+      const cd=document.getElementById('countdown');
+      cd.textContent='🚔 监狱中 '+Math.ceil((jailUntil-performance.now())/1000)+'s';
+      cd.classList.remove('hidden');
+      player.moving=false; updateHUD(); return;
+    }
+  }
+  // 移动
+  let mx=0,my=0;
+  if(keys['a']||keys['arrowleft']) mx-=1;
+  if(keys['d']||keys['arrowright']) mx+=1;
+  if(keys['w']||keys['arrowup']) my-=1;
+  if(keys['s']||keys['arrowdown']) my+=1;
+  if(joyVec.x||joyVec.y){ mx=joyVec.x; my=joyVec.y; }
+
+  const busy = player.working || documentJob || player.begging;
+  if(busy){ player.moving=false; }
+  else {
+    const len=Math.hypot(mx,my);
+    if(len>0){
+      mx/=len; my/=len;
+      const sp = getMoveSpeed();
+      const slow = player.carryManholes>0 ? 0.62 : 1;
+      player.x+=mx*sp*slow*dt; player.y+=my*sp*slow*dt;
+      player.moving=true; player.dirX=mx; player.dirY=my;
+      if(Math.abs(mx)>Math.abs(my)) player.facing=mx>0?'right':'left';
+      else player.facing=my>0?'down':'up';
+    } else player.moving=false;
+    const collided = resolveCollisions();
+    if(player.riding && collided && game.durability>0){ game.durability=Math.max(0,game.durability-8*dt); checkFaults(); }
+    if(player.riding && player.moving && game.fuel>0){ game.fuel=Math.max(0,game.fuel - VEHICLES[game.vehicle].fuelRate*dt); }
+    findNear();
+    if(player.riding && player.moving) checkVehicleHit();
+    if(player.riding){ player.pvx=player.x; player.pvy=player.y; }
+  }
+
+  // 汪警卫巡逻
+  if(game.zone==='city') updateGuards(dt);
+
+  // NPC 模拟玩家
+  if(game.zone==='city') updateNpcs(dt);
+
+  // 联机：上报位置（限流 ~10 次/秒）
+  if(wsConnected && ws){
+    moveSendAcc += dt;
+    if(moveSendAcc >= 0.1){
+      moveSendAcc = 0;
+      try{ ws.send(JSON.stringify({type:'move', x:player.x, y:player.y, facing:player.facing, moving:player.moving})); }catch(e){}
+    }
+  }
+
+  // 饱食度下降
+  hungerAcc+=dt;
+  while(hungerAcc>=2.5){
+    hungerAcc-=2.5;
+    if(game.zone==='city'){
+      game.hunger=Math.max(0,game.hunger-1);
+      if(game.hunger<=0 && game.hp>0){ game.hp=Math.max(0,game.hp-5); }
+    }
+  }
+  if(game.hp<=0){ die('饿死了'); return; }
+
+  // 计时收益（电子厂 / 摆摊 / 承包）
+  workTimer+=dt;
+  while(workTimer>=1){
+    workTimer-=1;
+    let earned=0;
+    if(player.working && player.working.kind==='factory'){ earned+=8; game.hunger=Math.max(0,game.hunger-1); }
+    if(stallBiz) earned+=2;
+    if(game.contract) earned+=1;
+    if(earned>0){ game.gems+=earned; game.totalEarned+=earned; }
+  }
+
+  // 996 文档
+  if(documentJob){
+    if(documentJob.phase==='writing'){
+      documentJob.progress+=dt;
+      if(documentJob.progress>=8){ documentJob.phase='review'; documentJob.time=10; toast('📝 文档已提交，等待审核…','info'); }
+    } else {
+      documentJob.time-=dt;
+      if(documentJob.time<=0){
+        documentJob=null;
+        game.gems+=80; game.totalEarned+=80;
+        toast('✅ 审核通过！发工资 80💎','good');
+        spawnFloating(player.x,player.y-26,'+80💎','#ffd166');
+        saveNow();
+      }
+    }
+  }
+
+  // 外卖
+  if(delivery){
+    const remain=(delivery.expires-performance.now())/1000;
+    const cd=document.getElementById('countdown');
+    cd.textContent='💣 外卖 ' + Math.max(0,Math.ceil(remain)) + 's';
+    if(remain<=0){ deliveryExplode(); }
+    else if(Math.hypot(player.x-delivery.x,player.y-delivery.y)<70){ deliverArrive(); }
+  }
+  // 网约车
+  if(taxi){
+    if(Math.hypot(player.x-taxi.x,player.y-taxi.y)<70){ taxiArrive(); }
+  }
+
+  // 浮动文字
+  for(let i=floatingTexts.length-1;i>=0;i--){
+    const f=floatingTexts[i]; f.y+=f.vy*dt; f.life-=dt*0.9;
+    if(f.life<=0) floatingTexts.splice(i,1);
+  }
+
+  updateHUD();
+}
+
+/* ============================================================
+   渲染
+============================================================ */
+function render(){
+  if(interior){ renderInterior(); return; }
+  cam.x=Math.max(0,Math.min(WORLD.w-W,player.x-W/2));
+  cam.y=Math.max(0,Math.min(WORLD.h-H,player.y-H/2));
+  if(game.zone==='spawn'){ renderSpawnPlatform(); }
+  else { renderCity(); }
+}
+
+/* —— 建筑内景主题 —— */
+const INTERIOR_THEMES = {
+  repair:    { floor:'#5a5a60', wall:'#2b2b31', props:[['tire',150,220],['tire',150,360],['tire',260,490],['jack',370,490],['tool',780,200],['part',790,330],['shelf',780,470],['car',470,410]] },
+  gas:       { floor:'#63636a', wall:'#2c3038', props:[['pump',200,330],['pump',340,330],['drink',780,220],['tool',790,420],['price',180,200]] },
+  insurance: { floor:'#d9c9a3', wall:'#6b4a26', props:[['desk',180,320],['desk',740,320],['chair',180,450],['chair',740,450],['plant',120,190],['plant',800,190]] },
+  court:     { floor:'#c9b28a', wall:'#5b3a1e', props:[['judge',470,230],['desk',170,400],['desk',750,400],['chair',170,500],['chair',750,500],['gavel',470,175]] },
+  jail:      { floor:'#46464e', wall:'#1e1e24', props:[['bars',150,330],['bars',750,330],['bed',470,470],['toilet',790,200]] },
+  vehicle:   { floor:'#c9c9cf', wall:'#3a3a42', props:[['car',280,410],['car',620,410],['tire',150,200],['tire',790,200],['tool',120,480]] },
+  food:      { floor:'#e8d9b8', wall:'#7a4a26', props:[['table',200,340],['table',700,340],['table',450,450],['food',450,190],['drink',780,200]] },
+  lottery:   { floor:'#e0d0b0', wall:'#8a3a3a', props:[['lottery',290,330],['screen',700,230],['chair',290,450],['money',790,430]] },
+  bank:      { floor:'#d9d2c2', wall:'#4a4a56', props:[['vault',790,330],['tell',250,330],['atm',150,200],['money',470,190]] },
+  contract:  { floor:'#3a3a48', wall:'#1e1e28', props:[['pc',160,320],['pc',160,450],['pc',760,320],['pc',760,450],['pc',450,450]] },
+  delivery:  { floor:'#e0d0b0', wall:'#8a3a2a', props:[['fryer',180,330],['box',790,320],['food',450,190],['table',450,450]] },
+  hardware:  { floor:'#b8b8b8', wall:'#5a5a5a', props:[['shelf',150,330],['shelf',790,330],['tool',470,200],['pipe',470,450]] },
+  gadget:    { floor:'#d9c9e8', wall:'#5a3a6a', props:[['shelf',160,330],['shelf',790,330],['doll',470,200],['doll',450,450]] },
+  hospital:  { floor:'#e8eef2', wall:'#3a6a8a', props:[['bed',200,400],['bed',700,400],['med',450,200]] },
+  taxi:      { floor:'#e0e0e0', wall:'#4a4a6a', props:[['map',470,200],['desk',200,400],['desk',740,400],['pc',470,450]] },
+  market:    { floor:'#c8d8b8', wall:'#4a6a3a', props:[['veg',160,330],['veg',790,330],['basket',470,450],['fish',470,200]] },
+  peace:     { floor:'#e8d9b8', wall:'#6a4a2a', props:[['table',200,380],['table',700,380],['kitchen',450,200]] },
+  job996:    { floor:'#c9c9d9', wall:'#3a3a5a', props:[['pc',180,330],['pc',740,330],['pc',450,450],['plant',120,200]] },
+  mine:      { floor:'#6a6a62', wall:'#333333', props:[['rock',180,350],['rock',760,350],['cart',470,450],['tool',470,200]] },
+  factory:   { floor:'#b0b0b8', wall:'#3a3a4a', props:[['machine',180,350],['machine',760,350],['belt',470,450]] },
+  villa:     { floor:'#e0d0b0', wall:'#8a6a4a', props:[['sofa',200,380],['tv',700,240],['bed',470,200],['plant',120,200]] },
+  estate:    { floor:'#d0d0d8', wall:'#5a6a8a', props:[['sofa',200,380],['tv',700,240],['bed',470,200]] },
+  rent:      { floor:'#d8d0c0', wall:'#7a6a5a', props:[['bed',200,380],['sofa',700,380],['table',450,450]] },
+  kongcheng: { floor:'#3a7d44', wall:'#6a4a2a', props:[['grass',180,350],['grass',760,350],['gate',470,200]] },
+  server:    { floor:'#3a3a48', wall:'#1e1e28', props:[['server',160,330],['server',790,330],['potato',470,450],['potato',300,200]] },
+};
+const PROP_EMOJI = {
+  tool:'🧰', part:'⚙️', pump:'⛽', price:'📋', desk:'🗄️', chair:'🪑', plant:'🪴',
+  judge:'👨‍⚖️', gavel:'🔨', bed:'🛏️', toilet:'🚽', table:'🍽️', food:'🍔', drink:'🥤',
+  lottery:'🎰', screen:'🖥️', money:'💰', vault:'🔐', tell:'🏦', atm:'💳', pc:'💻',
+  fryer:'🍟', box:'📦', shelf:'🗄️', pipe:'🔩', doll:'🧸', med:'💊', map:'🗺️',
+  veg:'🥬', basket:'🧺', fish:'🐟', kitchen:'🍳', rock:'🪨', cart:'🛒',
+  machine:'⚙️', belt:'🔧', sofa:'🛋️', tv:'📺', grass:'🌿', gate:'🏛️', server:'🖧', potato:'🥔',
+};
+function themeOf(b){ return INTERIOR_THEMES[b.type] || INTERIOR_THEMES.food; }
+function drawInteriorProp(k, sx, sy){
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(k==='tire'){
+    ctx.fillStyle='#1c1c1c'; ctx.beginPath(); ctx.arc(sx,sy,22,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#999'; ctx.beginPath(); ctx.arc(sx,sy,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(sx,sy,4,0,Math.PI*2); ctx.fill();
+  } else if(k==='car'){
+    ctx.save(); ctx.translate(sx,sy);
+    ctx.fillStyle='#e6c25a'; roundRectPath(-34,-18,68,36,8); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#bfe3ff'; roundRectPath(-10,-13,22,26,4); ctx.fill();
+    ctx.fillStyle='#222';
+    [[-22,-16],[-22,16],[22,-16],[22,16]].forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],5,0,Math.PI*2); ctx.fill(); });
+    ctx.restore();
+  } else if(k==='jack'){
+    ctx.fillStyle='#e08a38'; roundRectPath(sx-20,sy+8,40,10,3); ctx.fill();
+    ctx.fillStyle='#ff8c42'; roundRectPath(sx-7,sy-18,14,28,2); ctx.fill();
+    ctx.fillStyle='#444'; roundRectPath(sx-12,sy-22,24,6,2); ctx.fill();
+  } else if(k==='bars'){
+    ctx.fillStyle='#9a9a9a';
+    for(let i=-2;i<=2;i++){ ctx.fillRect(sx+i*16-3, sy-48, 6, 96); }
+    ctx.fillRect(sx-46, sy-50, 92, 8); ctx.fillRect(sx-46, sy+42, 92, 8);
+  } else {
+    ctx.font='32px sans-serif';
+    ctx.fillText(PROP_EMOJI[k] || '📦', sx, sy);
+  }
+}
+function renderInterior(){
+  const t = themeOf(interior.b);
+  ctx.fillStyle='#101018'; ctx.fillRect(0,0,W,H);
+  const ox=(W-ROOM_W)/2, oy=(H-ROOM_H)/2;
+  // 墙 + 地板
+  ctx.fillStyle=t.wall; ctx.fillRect(ox-16,oy-16,ROOM_W+32,ROOM_H+32);
+  ctx.fillStyle=t.floor; ctx.fillRect(ox,oy,ROOM_W,ROOM_H);
+  ctx.strokeStyle='rgba(0,0,0,.10)'; ctx.lineWidth=1;
+  for(let x=0;x<ROOM_W;x+=60){ ctx.beginPath(); ctx.moveTo(ox+x,oy); ctx.lineTo(ox+x,oy+ROOM_H); ctx.stroke(); }
+  for(let y=0;y<ROOM_H;y+=60){ ctx.beginPath(); ctx.moveTo(ox,oy+y); ctx.lineTo(ox+ROOM_W,oy+y); ctx.stroke(); }
+  // 地毯
+  ctx.fillStyle='rgba(255,255,255,.05)'; ctx.fillRect(ox+200,oy+220,500,300);
+  // 招牌
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(ox+ROOM_W/2-200,oy+14,400,52);
+  ctx.strokeStyle=t.wall; ctx.lineWidth=3; ctx.strokeRect(ox+ROOM_W/2-200,oy+14,400,52);
+  ctx.fillStyle='#fff'; ctx.font='bold 22px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(interior.b.icon+' '+interior.b.name, ox+ROOM_W/2, oy+40);
+  // 主题道具
+  for(const p of t.props) drawInteriorProp(p[0], ox+p[1], oy+p[2]);
+  // 柜台
+  ctx.fillStyle='#c9a15a'; ctx.fillRect(ox+ROOM_W/2-150, oy+88, 300, 62);
+  ctx.strokeStyle='#7a5a2a'; ctx.lineWidth=4; ctx.strokeRect(ox+ROOM_W/2-150, oy+88, 300, 62);
+  ctx.fillStyle='#5b3a1e'; ctx.font='16px "Microsoft YaHei"'; ctx.fillText('柜台', ox+ROOM_W/2, oy+119);
+  // 门
+  ctx.fillStyle='#2a1a0a'; ctx.fillRect(ox+ROOM_W/2-52, oy+ROOM_H-42, 104, 42);
+  ctx.strokeStyle='#7ee081'; ctx.lineWidth=2; ctx.strokeRect(ox+ROOM_W/2-52, oy+ROOM_H-42, 104, 42);
+  ctx.fillStyle='#7ee081'; ctx.font='14px "Microsoft YaHei"'; ctx.fillText('出口', ox+ROOM_W/2, oy+ROOM_H-21);
+  // 玩家
+  drawCharAt(ox+player.x, oy+player.y, player.facing);
+  // 柜台高亮
+  const c=interiorCounter();
+  if(Math.hypot(player.x-c.x,player.y-c.y)<110){
+    ctx.strokeStyle='rgba(255,209,102,.8)'; ctx.lineWidth=3; ctx.setLineDash([8,8]);
+    ctx.strokeRect(ox+ROOM_W/2-160, oy+82, 320, 74); ctx.setLineDash([]);
+  }
+}
+function drawCharAt(x,y,facing){
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x,y+16,13,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0a04b'; ctx.beginPath(); ctx.arc(x,y,13,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#b06a2a'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#ffd9b3'; ctx.beginPath(); ctx.arc(x,y-8,9,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#3d2b1f'; ctx.beginPath(); ctx.arc(x,y-11,9,Math.PI,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#222';
+  ctx.beginPath(); ctx.arc(x-3,y-7,1.6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+3,y-7,1.6,0,Math.PI*2); ctx.fill();
+}
+
+function drawGrass(){
+  ctx.fillStyle='#3a7d44'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,.05)';
+  for(let i=0;i<240;i++){
+    const gx=(i*137.5)%WORLD.w, gy=(i*89.7)%WORLD.h;
+    const sx=gx-cam.x, sy=gy-cam.y;
+    if(sx>-20&&sy>-20&&sx<W+20&&sy<H+20) ctx.fillRect(sx,sy,3,3);
+  }
+}
+
+function renderSpawnPlatform(){
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#2b3a67'); grad.addColorStop(1,'#16213e');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.15)';
+  for(let i=0;i<12;i++){
+    const cx=(i*337)%WORLD.w - cam.x, cy=(i*151)%600 - cam.y*0.2;
+    ctx.beginPath(); ctx.arc(cx,cy,40,0,Math.PI*2); ctx.arc(cx+40,cy,30,0,Math.PI*2); ctx.fill();
+  }
+  const px=SPAWN_PLATFORM.x-cam.x, py=SPAWN_PLATFORM.y-cam.y;
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(px,py+180,330,70,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#4a8a50';
+  ctx.beginPath(); ctx.ellipse(px,py,330,140,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#6fbf73'; ctx.lineWidth=6; ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,.08)';
+  for(let i=0;i<40;i++){ ctx.fillRect(px-320+(i*17)%640, py-130+(i*13)%260, 3,3); }
+  ctx.fillStyle='#6b4226';
+  ctx.beginPath(); ctx.ellipse(px,py+120,330,40,0,0,Math.PI*2); ctx.fill();
+
+  for(const p of PORTALS){
+    const x=p.x-cam.x, y=p.y-cam.y;
+    ctx.fillStyle='rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(x,y+55,55,16,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#555'; ctx.fillRect(x-12,y-40,24,60);
+    const pulse=0.8+Math.sin(performance.now()/300)*0.2;
+    ctx.fillStyle=p.color; ctx.globalAlpha=pulse;
+    ctx.beginPath(); ctx.ellipse(x,y,p.r,55,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.ellipse(x,y,p.r,55,0,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 14px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(p.name, x, y-75);
+    if(!p.usable){ ctx.fillStyle='#ff7e7e'; ctx.font='bold 12px "Microsoft YaHei"'; ctx.fillText('🔒 永久封锁', x, y+75); }
+  }
+  ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='bold 16px "Microsoft YaHei"'; ctx.textAlign='center';
+  ctx.fillText('空中悬浮出生平台', px, py-100);
+  ctx.fillStyle='#ffd166'; ctx.font='bold 14px "Microsoft YaHei"';
+  ctx.fillText('👉 走进「穷人传送门」进入城市大世界', px, py-76);
+
+  drawPlayer();
+  drawFloating();
+}
+
+function renderCity(){
+  drawGrass();
+  drawRoads();
+  for(const b of BUILDINGS){ if(!b.hidden) drawBuildingShape(b); }
+  for(const s of STALLS){ drawBuildingShape(s); }
+  for(const b of BUILDINGS){ if(b.hidden) drawBuildingShape(b); }
+  drawManholes();
+  drawTreesAndGuards();
+  drawNpcs();
+  drawRemotePlayers();
+  drawMarkers();
+  drawPlayer();
+  drawFloating();
+  drawBorders();
+}
+
+function drawRoads(){
+  ctx.fillStyle='#4a4a52';
+  const roads=[
+    [0,960,WORLD.w,120], [0,1400,WORLD.w,120], [0,1800,WORLD.w,120],
+    [0,2260,WORLD.w,120], [0,2780,WORLD.w,120], [0,3200,WORLD.w,120],
+    [600,780,100,WORLD.h], [1300,780,100,WORLD.h], [1900,780,100,WORLD.h]
+  ];
+  for(const r of roads) ctx.fillRect(r[0]-cam.x,r[1]-cam.y,r[2],r[3]);
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=4; ctx.setLineDash([22,26]);
+  for(const r of roads){
+    if(r[2]>r[3]){ ctx.beginPath(); ctx.moveTo(r[0]-cam.x,r[1]-cam.y+r[3]/2); ctx.lineTo(r[0]+r[2]-cam.x,r[1]-cam.y+r[3]/2); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(r[0]-cam.x+r[2]/2,r[1]-cam.y); ctx.lineTo(r[0]-cam.x+r[2]/2,r[1]+r[3]-cam.y); ctx.stroke(); }
+  }
+  ctx.setLineDash([]);
+}
+
+function drawBuildingShape(b){
+  const x=b.x-cam.x, y=b.y-cam.y;
+  if(x>W+60||y>H+60||x+b.w<-60||y+b.h<-60) return;
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(x+6,y+8,b.w,b.h);
+  ctx.fillStyle=b.color; ctx.fillRect(x,y,b.w,b.h);
+  ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=3; ctx.strokeRect(x,y,b.w,b.h);
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.fillRect(x+10,y+10,b.w-20,b.h-20);
+  const dw=30,dh=26;
+  ctx.fillStyle='#5b3a1e'; ctx.fillRect(x+b.w/2-dw/2,y+b.h-dh,dw,dh);
+  ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.strokeRect(x+b.w/2-dw/2,y+b.h-dh,dw,dh);
+  ctx.fillStyle='rgba(0,0,0,.6)';
+  const sw=b.w+16;
+  ctx.fillRect(x+b.w/2-sw/2,y-24,sw,22);
+  ctx.fillStyle='#fff'; ctx.font='bold 13px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(b.icon+' '+b.name, x+b.w/2, y-12);
+}
+
+function drawManholes(){
+  for(const m of MANHOLES){
+    const x=m.x-cam.x, y=m.y-cam.y;
+    if(x<-30||y<-30||x>W+30||y>H+30) continue;
+    ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(x,y,18,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#555'; ctx.lineWidth=3; ctx.stroke();
+    ctx.strokeStyle='#666'; ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.stroke();
+  }
+}
+
+function drawTreesAndGuards(){
+  for(const t of TREES){
+    const x=t[0]-cam.x, y=t[1]-cam.y;
+    if(x<-30||y<-30||x>W+30||y>H+30) continue;
+    ctx.fillStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x,y+12,16,8,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#6b4226'; ctx.fillRect(x-3,y-4,6,14);
+    ctx.fillStyle='#2f7d3a'; ctx.beginPath(); ctx.arc(x,y-14,17,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a9c48'; ctx.beginPath(); ctx.arc(x-4,y-18,12,0,Math.PI*2); ctx.fill();
+  }
+  for(const g of GUARDS){
+    const x=g.x-cam.x, y=g.y-cam.y;
+    if(x<-30||y<-30||x>W+30||y>H+30) continue;
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x,y+16,14,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c9a15a'; ctx.beginPath(); ctx.arc(x,y,15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#7a5a2a';
+    ctx.beginPath(); ctx.arc(x-8,y-6,6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+8,y-6,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c9a15a'; ctx.beginPath(); ctx.arc(x,y-2,12,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x-4,y-4,3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+4,y-4,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(x-4,y-4,1.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+4,y-4,1.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(g.name, x, y+30);
+  }
+}
+
+function drawMarkers(){
+  if(delivery){
+    const x=delivery.x-cam.x, y=delivery.y-cam.y;
+    const bounce=Math.sin(performance.now()/200)*8;
+    ctx.fillStyle='#ff5e62'; ctx.font='30px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🎯', x, y+bounce);
+    ctx.strokeStyle='rgba(255,94,98,.6)'; ctx.lineWidth=2; ctx.setLineDash([6,6]);
+    ctx.beginPath(); ctx.arc(x,y,30,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if(taxi){
+    const x=taxi.x-cam.x, y=taxi.y-cam.y;
+    const bounce=Math.sin(performance.now()/200)*8;
+    ctx.fillStyle='#ffd166'; ctx.font='30px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🧑', x, y+bounce);
+  }
+}
+
+function drawPlayer(){
+  const x=player.x-cam.x, y=player.y-cam.y;
+  // 停放的载具（未驾驶时）
+  if(game.vehicle && !player.riding && game.zone==='city'){
+    const px=player.pvx-cam.x, py=player.pvy-cam.y;
+    if(px>-80&&py>-80&&px<W+80&&py<H+80){
+      drawVehicle(px, py, game.vehicle, 'down', false);
+      ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='bold 12px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=3; ctx.strokeText('按G上车', px, py-30);
+      ctx.fillText('按G上车', px, py-30);
+    }
+  }
+  // 镐子攻击挥砍提示
+  if(attackCd>0.3 && game.zone==='city'){
+    ctx.strokeStyle='rgba(255,209,102,.9)'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(x, y, 30, -Math.PI*0.8, -Math.PI*0.2); ctx.stroke();
+  }
+  if(player.riding && game.vehicle){
+    drawVehicle(x, y, game.vehicle, player.facing, player.moving);
+  } else {
+    ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x,y+16,13,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f0a04b'; ctx.beginPath(); ctx.arc(x,y,13,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#b06a2a'; ctx.lineWidth=2; ctx.stroke();
+    if(player.facing==='down'){ ctx.fillRect(x-16,y-2,6,10); ctx.fillRect(x+10,y-2,6,10); }
+    else if(player.facing==='up'){ ctx.fillRect(x-16,y-6,6,10); ctx.fillRect(x+10,y-6,6,10); }
+    else if(player.facing==='left'){ ctx.fillRect(x-18,y-4,10,6); }
+    else { ctx.fillRect(x+8,y-4,10,6); }
+    ctx.fillStyle='#ffd9b3'; ctx.beginPath(); ctx.arc(x,y-8,9,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3d2b1f'; ctx.beginPath(); ctx.arc(x,y-11,9,Math.PI,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#222';
+    const fx=player.facing==='left'?-3:player.facing==='right'?3:0;
+    const fy=player.facing==='up'?-2:player.facing==='down'?2:0;
+    ctx.beginPath(); ctx.arc(x-3+fx*.4,y-7+fy*.4,1.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+3+fx*.4,y-7+fy*.4,1.6,0,Math.PI*2); ctx.fill();
+    // 手持物品
+    if(game){
+      const items = ownedHotbarItems();
+      const held = items[hotbarSel];
+      if(held){ ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(held.emo, x+20, y+3); }
+    }
+  }
+  ctx.textAlign='center';
+  if(delivery){ ctx.font='22px sans-serif'; ctx.fillText('💣', x, y-26); }
+  else if(player.working){ ctx.font='22px sans-serif'; ctx.fillText('💪', x, y-26); }
+  else if(stallBiz){ ctx.font='22px sans-serif'; ctx.fillText('🛒', x, y-26); }
+  else if(player.begging){ ctx.font='22px sans-serif'; ctx.fillText('🥣', x, y-26); }
+  else if(player.carryManholes>0){ ctx.font='20px sans-serif'; ctx.fillText('🔩×'+player.carryManholes, x, y-24); }
+}
+
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+// 俯视角车辆建模
+function drawVehicle(x,y,type,facing,moving){
+  const v = VEHICLES[type];
+  ctx.save();
+  ctx.translate(x,y);
+  let ang = 0;
+  if(facing==='right') ang = Math.PI/2;
+  else if(facing==='left') ang = -Math.PI/2;
+  else if(facing==='up') ang = Math.PI;
+  ctx.rotate(ang);
+  ctx.fillStyle='rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.ellipse(3,4,22,13,0,0,Math.PI*2); ctx.fill();
+  if(type==='car'){
+    ctx.fillStyle=v.body; roundRectPath(-22,-13,44,26,7); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#bfe3ff'; roundRectPath(-7,-9,19,18,4); ctx.fill();
+    ctx.fillStyle='#2a3a4a'; roundRectPath(8,-8,8,16,3); ctx.fill();
+    ctx.fillStyle='#222';
+    [[-15,-12],[-15,12],[13,-12],[13,12]].forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],4,0,Math.PI*2); ctx.fill(); });
+  } else {
+    ctx.fillStyle=v.body; roundRectPath(-12,-7,24,14,5); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#222';
+    [[-8,-6],[-8,6],[8,-6],[8,6]].forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],3,0,Math.PI*2); ctx.fill(); });
+  }
+  ctx.restore();
+}
+
+function drawFloating(){
+  for(const f of floatingTexts){
+    ctx.globalAlpha=Math.max(0,f.life);
+    ctx.fillStyle=f.color; ctx.font='bold 16px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3;
+    ctx.strokeText(f.txt,f.x-cam.x,f.y-cam.y); ctx.fillText(f.txt,f.x-cam.x,f.y-cam.y);
+    ctx.globalAlpha=1;
+  }
+}
+function drawBorders(){
+  ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=6;
+  ctx.strokeRect(-cam.x,-cam.y,WORLD.w,WORLD.h);
+}
+
+/* ============================================================
+   管理员后台（隐藏通道）+ NPC 模拟多人 + 好友
+============================================================ */
+const ADMIN_KEY = 'pqdg_admin_config';
+function loadAdminConfig(){
+  try{ const c=JSON.parse(localStorage.getItem(ADMIN_KEY)); if(c&&c.primary) return c; }catch(e){}
+  return { primary:'6767', secondary:'7891', npcInterval:8, npcEnabled:true, npcMax:18 };
+}
+function saveAdminConfig(c){ localStorage.setItem(ADMIN_KEY, JSON.stringify(c)); }
+let adminCfg = loadAdminConfig();
+let titleTaps = 0, titleTapTimer = null;
+function titleTap(){
+  titleTaps++;
+  clearTimeout(titleTapTimer);
+  titleTapTimer = setTimeout(()=>{ titleTaps=0; }, 2500);
+  if(titleTaps >= 5){ titleTaps=0; startAdminLogin(); }
+}
+function startAdminLogin(){
+  const p1 = prompt('🔐 进入管理员后台：请输入一级密码');
+  if(p1===null) return;
+  if(p1 !== adminCfg.primary){ alert('一级密码错误'); return; }
+  const p2 = prompt('🔐 请输入二级密码');
+  if(p2===null) return;
+  if(p2 !== adminCfg.secondary){ alert('二级密码错误'); return; }
+  openAdminPanel();
+}
+function showAdminModal(html){ document.getElementById('adminCard').innerHTML=html; document.getElementById('adminModal').classList.remove('hidden'); }
+function closeAdmin(){ document.getElementById('adminModal').classList.add('hidden'); }
+function openAdminPanel(){
+  const users=loadUsers();
+  const adminExists = !!users['管理员'];
+  let html = `<h3>🛠️ 管理员后台</h3><div class="sub">穷小子打工记 · 服务端管理</div>`;
+  html += `<div class="helpbox"><b>管理员账号</b>：管理员 / 密码 6767</div>`;
+  if(!adminExists){ html += `<button class="btn" onclick="summonAdmin()">✨ 召唤管理员账号</button>`; }
+  else { html += `<div class="sub" style="color:#7ee081">✅ 管理员账号已存在，可正常登录使用</div>`; }
+  html += `<div class="sub" style="margin-top:14px">👥 NPC 管理（当前 ${npcs.length} 个）</div>`;
+  html += `<div class="row">
+    <button class="btn" onclick="toggleNpc()">刷新：${adminCfg.npcEnabled?'开启':'关闭'}</button>
+    <button class="btn ghost" onclick="deleteAllNpcs()">删除全部NPC</button></div>`;
+  html += `<div class="row">
+    <button class="btn" onclick="spawnOneNpc()">手动刷新1个</button>
+    <button class="btn ghost" onclick="npcInterval()">频率：${adminCfg.npcInterval}秒</button></div>`;
+  html += `<div class="sub" style="margin-top:14px">📢 公告管理（登录页展示）</div>`;
+  html += `<div class="field"><label>服务器公告</label><textarea id="annInput" placeholder="输入公告内容，所有玩家登录时可见…" style="width:100%;min-height:80px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3);color:#fff;font-size:14px;resize:vertical;"></textarea></div>`;
+  html += `<div class="row"><button class="btn" onclick="publishAnnouncement()">📢 发布公告</button><button class="btn ghost" onclick="clearAnnouncement()">清空公告</button></div>`;
+  html += `<div class="sub" style="margin-top:14px">🔑 修改后台密码</div>`;
+  html += `<div class="field"><label>一级密码</label><input id="adP1" value="${adminCfg.primary}"></div>`;
+  html += `<div class="field"><label>二级密码</label><input id="adP2" value="${adminCfg.secondary}"></div>`;
+  html += `<button class="btn" onclick="saveAdminPw()">保存密码</button>`;
+  html += `<div class="sub" style="margin-top:14px">☁️ 云端存档管理</div>`;
+  html += `<div id="cloudAdminBox"></div>`;
+  html += `<div class="sub" style="margin-top:14px">📋 已注册账号（${Object.keys(users).length}）</div>`;
+  for(const n of Object.keys(users)){
+    html += `<div class="shop-item"><div class="emo">👤</div><div class="info"><b>${n}</b><span>${n==='管理员'?'管理员账号':'普通账号'}</span></div>
+      <button class="buy" onclick="deleteAccount('${n}')">删除</button></div>`;
+  }
+  html += `<button class="btn close" onclick="closeAdmin()">关闭后台</button>`;
+  showAdminModal(html);
+  renderCloudAdmin();
+  fetch(apiBase() + '/api/announcement', { cache: 'no-store' })
+    .then(r => r.json()).then(a => {
+      const el = document.getElementById('annInput');
+      if(el && a && a.text) el.value = a.text;
+    }).catch(() => {});
+}
+function summonAdmin(){
+  const users=loadUsers();
+  users['管理员'] = { pass:hash('6767'), security:{father:'管理员',toy:'',teacher:''}, game:newGameData(), admin:true };
+  saveUsers(users);
+  alert('✨ 管理员账号已召唤！\n账号：管理员\n密码：6767');
+  openAdminPanel();
+}
+function toggleNpc(){ adminCfg.npcEnabled=!adminCfg.npcEnabled; saveAdminConfig(adminCfg); openAdminPanel(); }
+function deleteAllNpcs(){ npcs=[]; alert('已删除全部 NPC'); openAdminPanel(); }
+function spawnOneNpc(){ spawnNpc(); openAdminPanel(); }
+function npcInterval(){
+  const v=prompt('设置 NPC 刷新频率（秒）：', adminCfg.npcInterval);
+  if(v===null) return;
+  const n=parseInt(v); if(!isNaN(n)&&n>=1){ adminCfg.npcInterval=n; saveAdminConfig(adminCfg); }
+  openAdminPanel();
+}
+function saveAdminPw(){
+  const p1=document.getElementById('adP1').value.trim();
+  const p2=document.getElementById('adP2').value.trim();
+  if(!p1||!p2){ alert('密码不能为空'); return; }
+  adminCfg.primary=p1; adminCfg.secondary=p2; saveAdminConfig(adminCfg);
+  alert('后台密码已修改'); openAdminPanel();
+}
+function deleteAccount(name){
+  const users=loadUsers(); delete users[name]; saveUsers(users);
+  alert('已删除账号 ' + name); openAdminPanel();
+}
+
+/* —— AI 玩家 + NPC 模拟多人 —— */
+const AI_PLAYERS = ['打工人小王','老王','李四','张三','穷姐妹小花','外卖小哥阿强','搬砖小刘','网管阿伟','烧烤摊主老赵','快递员小陈','矿工老钱','程序员小周','夜市老板娘','出租车司机老孙','水电工老吴','保安大壮','厨师胖哥','流浪歌手阿凯','摊主阿芳','收银员小美'];
+let npcs = [];
+let npcSpawnAcc = 0;
+function randomCityPoint(){ return { x:500+Math.random()*1800, y:900+Math.random()*2800 }; }
+function spawnNpc(){
+  if(npcs.length >= adminCfg.npcMax) return;
+  const name = AI_PLAYERS[Math.floor(Math.random()*AI_PLAYERS.length)];
+  const p = randomCityPoint();
+  const colors = ['#e06c5a','#5aa9e0','#6fbf73','#e0a23c','#7b6bc9','#ff8c42','#5c8a8a','#d9a0ff'];
+  const n = { name, x:p.x, y:p.y, tx:p.x, ty:p.y, speed:70+Math.random()*50, wait:0.5, color:colors[Math.floor(Math.random()*colors.length)], hp:3, maxHp:3, innocent: Math.random()<0.85 };
+  pickNpcTarget(n); npcs.push(n);
+}
+function pickNpcTarget(n){ const p=randomCityPoint(); n.tx=p.x; n.ty=p.y; }
+function npcInBuilding(n){
+  for(const b of BUILDINGS){ if(n.x>b.x&&n.x<b.x+b.w&&n.y>b.y&&n.y<b.y+b.h) return true; }
+  for(const s of STALLS){ if(n.x>s.x&&n.x<s.x+s.w&&n.y>s.y&&n.y<s.y+s.h) return true; }
+  return false;
+}
+function updateNpcs(dt){
+  for(const n of npcs){
+    if(n.wait>0){ n.wait-=dt; continue; }
+    const dx=n.tx-n.x, dy=n.ty-n.y, d=Math.hypot(dx,dy);
+    if(d<10){ n.wait=0.5+Math.random()*2.5; pickNpcTarget(n); continue; }
+    n.x += dx/d*n.speed*dt; n.y += dy/d*n.speed*dt;
+    if(npcInBuilding(n)) pickNpcTarget(n);
+  }
+  npcSpawnAcc += dt;
+  if(adminCfg.npcEnabled && npcSpawnAcc >= adminCfg.npcInterval){ npcSpawnAcc=0; spawnNpc(); }
+}
+function drawNpcs(){
+  for(const n of npcs){
+    const x=n.x-cam.x, y=n.y-cam.y;
+    if(x<-40||y<-40||x>W+40||y>H+40) continue;
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x,y+14,11,6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=n.color; ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffd9b3'; ctx.beginPath(); ctx.arc(x,y-6,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3d2b1f'; ctx.beginPath(); ctx.arc(x,y-8,7,Math.PI,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3; ctx.strokeText(n.name, x, y-20);
+    ctx.fillText(n.name, x, y-20);
+  }
+}
+
+/* —— 好友系统 —— */
+function openFriends(){
+  const friends = game.friends||[];
+  const onlineNames = wsConnected ? [currentUser||'玩家'].concat(Object.values(remotePlayers).map(p=>p.name)) : [];
+  const isOnline = (name) => onlineNames.includes(name);
+  let html=`<h3>👥 好友列表</h3><div class="sub">${wsConnected?('🔗 联机 · '+onlineNames.length+' 人在线'):'⚠️ 未连接服务器'}</div>`;
+  if(!friends.length){ html+=`<div class="helpbox">你还没有好友，从下方在线玩家里添加一个吧。</div>`; }
+  else {
+    for(const f of friends){
+      const online = isOnline(f);
+      html+=`<div class="shop-item"><div class="emo">${online?'🟢':'⚫'}</div><div class="info"><b>${f}</b><span>${online?'在线':'离线'}</span></div>
+        <button class="buy" onclick="removeFriend('${f}')">删除</button></div>`;
+    }
+  }
+  html+=`<div class="sub" style="margin-top:14px">🟢 在线玩家</div>`;
+  for(const n of onlineNames.slice(0,14)){
+    const isFriend = friends.includes(n);
+    html+=`<div class="shop-item"><div class="emo">🟢</div><div class="info"><b>${n}</b><span>在线</span></div>
+      <button class="buy" ${isFriend?'disabled':''} onclick="addFriend('${n}')">${isFriend?'已加':'加好友'}</button></div>`;
+  }
+  html+=`<div class="row" style="margin-top:8px"><input id="friInput" placeholder="输入用户名加好友" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;"><button class="btn" onclick="addFriendByName()">添加</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function addFriend(name){ if(!game.friends) game.friends=[]; if(!game.friends.includes(name)){ game.friends.push(name); toast('已添加好友 '+name,'good'); } openFriends(); }
+function addFriendByName(){ const v=document.getElementById('friInput').value.trim(); if(!v){ toast('请输入用户名','bad'); return; } addFriend(v); }
+function removeFriend(name){ game.friends=(game.friends||[]).filter(f=>f!==name); toast('已删除好友 '+name,'info'); openFriends(); }
+
+/* —— 管理员账号（游戏内） —— */
+function openGameAdmin(){
+  let html=`<h3>🛠️ 管理员面板</h3><div class="sub">管理员专属功能</div>`;
+  html+=`<div class="sub">✨ 传送</div>`;
+  const spots=[['摆摊区',2000,900],['商业区',1200,1280],['生活区',700,2000],['工作区',800,2500],['住宅区',800,3000],['空城计',1900,2500],['矿场',840,2500]];
+  for(const s of spots){ html+=`<button class="btn ghost" style="margin:4px 0" onclick="adminTeleport(${s[1]},${s[2]})">传送：${s[0]}</button>`; }
+  html+=`<div class="sub" style="margin-top:12px">💰 资源</div>`;
+  html+=`<div class="row"><button class="btn" onclick="adminGems(1000)">+1000💎</button><button class="btn" onclick="adminFull()">回满状态</button></div>`;
+  html+=`<div class="row"><button class="btn" onclick="adminNpc()">刷新NPC</button><button class="btn ghost" onclick="adminManage()">打开后台</button></div>`;
+  html+=`<button class="btn close" onclick="closeModal()">关闭</button>`;
+  showModal(html);
+}
+function adminTeleport(x,y){ player.x=x; player.y=y; closeModal(); toast('已传送','good'); }
+function adminGems(n){ game.gems+=n; game.totalEarned+=n; updateHUD(); toast(`+${n}💎`,'good'); }
+function adminFull(){ game.hunger=100; game.hp=100; updateHUD(); toast('状态已回满','good'); }
+function adminNpc(){ spawnNpc(); toast('已刷新一个NPC','info'); }
+function adminManage(){ closeModal(); openAdminPanel(); }
+document.getElementById('adminModal').addEventListener('click', e=>{ if(e.target.id==='adminModal') closeAdmin(); });
+
+/* ============================================================
+   实时联机（WebSocket 客户端）
+============================================================ */
+let SERVER_URL = (new URLSearchParams(location.search).get('server')) || (localStorage.getItem('pqdg_server') || 'wss://666-production-e131c737.up.railway.app');
+function apiBase(){ return SERVER_URL.replace(/^ws(s?):\/\//, 'http$1://'); }
+const MY_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+let ws = null, wsConnected = false, remotePlayers = {};
+let moveSendAcc = 0;
+let pendingEnter = null;
+// 关闭页面时主动断开，帮助服务器立刻清理，避免留下"幽灵角色/分身"
+window.addEventListener('beforeunload', ()=>{ if(ws){ try{ ws.close(); }catch(e){} } });
+
+function connectServer(){
+  if(!('WebSocket' in window)) return;
+  try { ws = new WebSocket(SERVER_URL); } catch(e){ ws=null; return; }
+  ws.onopen = ()=>{
+    wsConnected = true;
+    if(pendingEnter){ const d=pendingEnter; pendingEnter=null; enterGame(d); }
+    else { toast('🔗 已重新连接','good'); }
+    sendJoin(); updateHUD();
+  };
+  ws.onmessage = (e)=> handleServerMsg(e.data);
+  ws.onclose = ()=>{
+    const was = wsConnected; wsConnected=false; remotePlayers={}; updateHUD();
+    if(pendingEnter){ pendingEnter=null; setAuthMsg('连接服务器失败，请在「设置」里检查地址'); }
+    else if(was && game && !document.getElementById('gameScreen').classList.contains('hidden')) showDisconnect();
+  };
+  ws.onerror = ()=>{};
+}
+function connectAndEnter(data){
+  if(!('WebSocket' in window)){ setAuthMsg('浏览器不支持 WebSocket，无法联机'); return; }
+  setAuthMsg('正在连接服务器…');
+  pendingEnter = data;
+  connectServer();
+  setTimeout(()=>{
+    if(pendingEnter){ pendingEnter=null; if(ws){ try{ws.close();}catch(e){} } ws=null; wsConnected=false; setAuthMsg('连接服务器超时，请在「设置」里检查地址'); }
+  }, 10000);
+}
+function showDisconnect(){
+  showModal(`<h3>⚠️ 连接已断开</h3><div class="sub">与服务器的连接已断开，无法继续游戏。</div>
+    <button class="btn" onclick="reconnect()">重新连接</button>
+    <button class="btn ghost" onclick="logout()">返回登录</button>`);
+}
+function reconnect(){ closeModal(); connectServer(); }
+function sendJoin(){
+  if(!wsConnected || !ws) return;
+  ws.send(JSON.stringify({ type:'join', id:MY_ID, name:currentUser||'玩家', x:player.x, y:player.y, facing:player.facing }));
+}
+function handleServerMsg(data){
+  let m; try{ m=JSON.parse(data); }catch(e){ return; }
+  if(m.type==='init'){
+    remotePlayers={};
+    (m.players||[]).forEach(p=>{ if(p.id!==MY_ID) remotePlayers[p.id]={id:p.id,name:p.name,x:p.x,y:p.y,facing:p.facing,moving:p.moving}; });
+  }
+  else if(m.type==='join'){ if(m.id!==MY_ID) remotePlayers[m.id]={id:m.id,name:m.name,x:m.x,y:m.y,facing:m.facing,moving:m.moving}; }
+  else if(m.type==='move'){ const r=remotePlayers[m.id]; if(r){ r.x=m.x; r.y=m.y; r.facing=m.facing; r.moving=m.moving; } }
+  else if(m.type==='leave'){ delete remotePlayers[m.id]; }
+  else if(m.type==='chat'){ showChat(m.name, m.text); }
+  else if(m.type==='announcement'){ if(m.text) toast('📢 公告：' + m.text, 'info'); }
+}
+function drawRemotePlayers(){
+  for(const id in remotePlayers){
+    const p=remotePlayers[id];
+    const x=p.x-cam.x, y=p.y-cam.y;
+    if(x<-40||y<-40||x>W+40||y>H+40) continue;
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x,y+14,11,6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#4aa3ff'; ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffd9b3'; ctx.beginPath(); ctx.arc(x,y-6,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3d2b1f'; ctx.beginPath(); ctx.arc(x,y-8,7,Math.PI,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px "Microsoft YaHei"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=3; ctx.strokeText(p.name, x, y-20);
+    ctx.fillText(p.name, x, y-20);
+  }
+}
+function sendChat(){
+  const inp=document.getElementById('chatInput');
+  const text=inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  if(wsConnected && ws){ try{ ws.send(JSON.stringify({type:'chat', text})); }catch(e){} showChat(currentUser||'玩家', text); }
+  else { toast('未连接服务器，无法聊天','bad'); }
+}
+function showChat(name, text){
+  addChatLine(name, text);
+  const rp = Object.values(remotePlayers).find(p=>p.name===name);
+  const x = rp ? rp.x : player.x;
+  const y = rp ? rp.y : player.y;
+  floatingTexts.push({ x, y: y-42, txt:'💬 '+name+': '+text, color:'#fff', life:2.5, vy:-22 });
+}
+function addChatLine(name, text){
+  const log=document.getElementById('chatLog');
+  const div=document.createElement('div');
+  div.textContent = name + '：' + text;
+  log.appendChild(div);
+  while(log.children.length > 20) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* —— 设置（服务器地址 + 下载 HTML） —— */
+function openSettings(){
+  document.getElementById('setServer').value = SERVER_URL;
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
+function saveServer(){
+  const v = document.getElementById('setServer').value.trim();
+  if(!v){ alert('服务器地址不能为空'); return; }
+  localStorage.setItem('pqdg_server', v);
+  SERVER_URL = v;
+  alert('服务器地址已保存，重新登录后生效');
+  closeSettings();
+}
+function downloadHtml(){
+  let html;
+  try { html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML; }
+  catch(e){ alert('下载失败'); return; }
+  html = html.replace("'wss://666-production-e131c737.up.railway.app'", "'" + String(SERVER_URL).replace(/'/g, "\\'") + "'");
+  const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '穷小子打工记.html';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(a.href); }, 200);
+}
+document.getElementById('settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') closeSettings(); });
+
+/* ============================================================
+   公告（登录页展示 + 管理员后台发布）
+============================================================ */
+function fetchAnnouncement(){
+  const box = document.getElementById('announceBox');
+  const txt = document.getElementById('annText');
+  if(!box || !txt) return;
+  fetch(apiBase() + '/api/announcement', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(a => {
+      if(a && a.text){ txt.textContent = a.text; box.classList.remove('hidden'); }
+      else { box.classList.add('hidden'); }
+    })
+    .catch(() => {});
+}
+function publishAnnouncement(){
+  const el = document.getElementById('annInput');
+  const text = el ? el.value.trim() : '';
+  if(!text){ alert('公告内容不能为空'); return; }
+  postAnnouncement(text);
+}
+function clearAnnouncement(){ postAnnouncement(''); }
+function postAnnouncement(text){
+  fetch(apiBase() + '/api/announcement', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, p1: adminCfg.primary, p2: adminCfg.secondary })
+  }).then(r => r.json()).then(res => {
+    if(res.ok){
+      alert(text ? '公告已发布！' : '公告已清空');
+      fetchAnnouncement();
+    } else {
+      alert('发布失败：' + (res.error || '未知错误'));
+    }
+  }).catch(() => alert('发布失败：无法连接服务器（检查服务器地址 / 后端是否在运行）'));
+}
+
+/* ============================================================
+   S1 起源赛季 · 赛季指引
+============================================================ */
+const SEASON = {
+  id: 'S1',
+  title: 'S1 · 起源赛季',
+  theme: '从悬浮平台起步，在城市的夹缝中活下去',
+  intro: '这是《穷小子打工记》的第一个赛季——起源。你从空中悬浮平台出发，穿过穷人传送门来到城市，靠打工、摆摊、送外卖、挖矿，一点点攒下第一笔绿宝石。所有伟大的逆袭，都从这个一穷二白的起点开始。',
+  objectives: [
+    { text: '累计赚取 1,000 绿宝石', check: g => g.totalEarned >= 1000 },
+    { text: '累计赚取 10,000 绿宝石', check: g => g.totalEarned >= 10000 },
+    { text: '拥有自己的第一套房产', check: g => !!g.houseOwned },
+    { text: '买下第一辆载具', check: g => !!g.vehicle },
+    { text: '承包一家店铺当老板', check: g => !!g.contract },
+    { text: '把镐子升级到铁镐及以上', check: g => PICKAXES.findIndex(p => p.id === g.pickaxe) >= 2 },
+  ],
+};
+function openSeason(){
+  const g = game;
+  let html = `<h3>🏆 ${SEASON.title}</h3><div class="sub">${SEASON.theme}</div>`;
+  html += `<div class="helpbox">${SEASON.intro}</div>`;
+  if(g){
+    const done = SEASON.objectives.filter(o => o.check(g)).length;
+    html += `<div class="sub" style="margin-top:14px">🎯 赛季目标（${done}/${SEASON.objectives.length}）</div>`;
+    for(const o of SEASON.objectives){
+      const ok = o.check(g);
+      html += `<div class="season-obj ${ok?'done':''}"><span class="emo">${ok?'✅':'⬜'}</span><span class="n">${o.text}</span><span class="st">${ok?'已完成':'进行中'}</span></div>`;
+    }
+    html += `<div class="statgrid" style="margin-top:10px">
+      <div class="cell"><b>💎 ${Math.floor(g.totalEarned)}</b><span>本赛季累计</span></div>
+      <div class="cell"><b>${done}/${SEASON.objectives.length}</b><span>目标完成</span></div>
+    </div>`;
+  } else {
+    html += `<div class="sub" style="margin-top:14px">🎯 赛季目标（登录后查看个人进度）</div>`;
+    for(const o of SEASON.objectives){
+      html += `<div class="season-obj"><span class="emo">⬜</span><span class="n">${o.text}</span><span class="st">待完成</span></div>`;
+    }
+  }
+  html += `<button class="btn close" onclick="closeSeason()">关闭</button>`;
+  document.getElementById('seasonCard').innerHTML = html;
+  document.getElementById('seasonModal').classList.remove('hidden');
+}
+function closeSeason(){ document.getElementById('seasonModal').classList.add('hidden'); }
+document.getElementById('seasonModal').addEventListener('click', e=>{ if(e.target.id==='seasonModal') closeSeason(); });
+
+/* ============================================================
+   云端存档
+============================================================ */
+let cloudReady = false;
+let lastCloudSave = 0;
+function cloudLoad(user, passHash, cb){
+  fetch(apiBase()+'/api/save?user='+encodeURIComponent(user)+'&pass='+encodeURIComponent(passHash), {cache:'no-store'})
+    .then(r=>r.json()).then(cb).catch(()=>cb({ok:false,error:'网络错误'}));
+}
+function cloudUpload(user, passHash, save, cb){
+  fetch(apiBase()+'/api/save', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user, pass:passHash, save})
+  }).then(r=>r.json()).then(res=>{ cloudReady = !!(res && res.ok); if(cb) cb(res); })
+    .catch(()=>{ if(cb) cb({ok:false}); });
+}
+function showSyncPopup(user, rec){
+  const el = document.getElementById('syncPopup');
+  document.getElementById('syncTitle').textContent = '检测到旧本地存档';
+  document.getElementById('syncDesc').innerHTML = '账号「<b>'+user+'</b>」的存档目前只保存在本地。同步到云端后，换设备也不会丢档。';
+  document.getElementById('syncMsg').textContent = '同步后即可开始游玩';
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = false; btn.textContent = '☁️ 同步到云端并进入游戏';
+  btn.onclick = ()=> doCloudSync(user, rec);
+  document.getElementById('syncCancel').onclick = ()=>{
+    document.getElementById('syncPopup').classList.add('hidden');
+    currentUser = null; switchAuth('login');
+  };
+  el.classList.remove('hidden');
+}
+// 登录页打开时自动检测本地账号是否缺云端存档
+async function autoCheckCloudSync(){
+  try{
+    const users = loadUsers();
+    const names = Object.keys(users).filter(n => n !== '管理员');
+    if(!names.length) return;
+    const results = await Promise.all(names.map(async (n)=>{
+      try{
+        const r = await fetch(apiBase()+'/api/save?user='+encodeURIComponent(n)+'&pass='+encodeURIComponent(users[n].pass), {cache:'no-store'});
+        const res = await r.json();
+        return { name:n, need: !!(res.ok && res.save === null) };
+      }catch(e){ return { name:n, need:false }; }
+    }));
+    const pending = results.filter(x=>x.need).map(x=>x.name);
+    if(pending.length) showAutoSyncPopup(pending, users);
+  }catch(e){}
+}
+function showAutoSyncPopup(pendingNames, users){
+  const el = document.getElementById('syncPopup');
+  document.getElementById('syncTitle').textContent = '检测到本地存档未同步';
+  document.getElementById('syncDesc').innerHTML = '本机有 <b>'+pendingNames.length+'</b> 个账号的存档只存在本地：<b>'+pendingNames.join('、')+'</b>。同步到云端后，换设备也不会丢档。';
+  document.getElementById('syncMsg').textContent = '同步后可正常游玩';
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
+  btn.onclick = ()=> doAutoSync(pendingNames, users);
+  document.getElementById('syncCancel').onclick = ()=> el.classList.add('hidden');
+  el.classList.remove('hidden');
+}
+function doAutoSync(names, users){
+  const btn = document.getElementById('syncBtn');
+  const msg = document.getElementById('syncMsg');
+  btn.disabled = true; btn.textContent = '☁️ 同步中…';
+  msg.textContent = '正在同步 '+names.length+' 个账号…';
+  let done = 0;
+  names.forEach((n)=>{
+    cloudUpload(n, users[n].pass, users[n].game, ()=>{
+      done++;
+      if(done === names.length){
+        msg.textContent = '✅ 全部同步完成！';
+        setTimeout(()=>{
+          document.getElementById('syncPopup').classList.add('hidden');
+          btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
+          toast('☁️ 本地存档已全部同步到云端','good');
+        }, 700);
+      }
+    });
+  });
+}
+function doCloudSync(user, rec){
+  const btn = document.getElementById('syncBtn');
+  const msg = document.getElementById('syncMsg');
+  btn.disabled = true; btn.textContent = '☁️ 同步中…';
+  msg.textContent = '正在上传本地存档…';
+  cloudUpload(user, rec.pass, rec.game, (res)=>{
+    if(res && res.ok){
+      msg.textContent = '同步完成！正在进入游戏…';
+      setTimeout(()=>{
+        document.getElementById('syncPopup').classList.add('hidden');
+        btn.disabled = false; btn.textContent = '☁️ 同步到云端并进入游戏';
+        connectAndEnter(rec.game);
+      }, 500);
+    } else {
+      msg.textContent = '同步失败：'+((res&&res.error)||'网络错误')+'，请重试';
+      btn.disabled = false; btn.textContent = '☁️ 重试同步';
+    }
+  });
+}
+// 管理员：云端存档管理
+function renderCloudAdmin(){
+  const box = document.getElementById('cloudAdminBox');
+  if(!box) return;
+  box.innerHTML = '<div class="sub">加载中…</div>';
+  fetch(apiBase()+'/api/saves?p1='+encodeURIComponent(adminCfg.primary)+'&p2='+encodeURIComponent(adminCfg.secondary))
+    .then(r=>r.json()).then(res=>{
+      if(!res.ok){ box.innerHTML = '<div class="sub" style="color:#ff7e7e">加载失败：'+(res.error||'')+'</div>'; return; }
+      if(!res.saves.length){ box.innerHTML = '<div class="sub">暂无云端存档</div>'; return; }
+      let h='';
+      for(const s of res.saves){
+        h += `<div class="shop-item"><div class="emo">☁️</div><div class="info"><b>${s.user}</b><span>💎${Math.floor(s.gems)} · ${s.vehicle||'无车'}</span></div>
+          <button class="buy" onclick="adminDeleteSave('${s.user}')">删除</button></div>`;
+      }
+      box.innerHTML = h;
+    }).catch(()=>{ box.innerHTML = '<div class="sub" style="color:#ff7e7e">无法连接服务器</div>'; });
+}
+function adminDeleteSave(user){
+  if(!confirm('确定删除「'+user+'」的云端存档吗？')) return;
+  fetch(apiBase()+'/api/save/delete', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user, p1:adminCfg.primary, p2:adminCfg.secondary})
+  }).then(r=>r.json()).then(res=>{ if(res.ok) renderCloudAdmin(); else alert('删除失败：'+(res.error||'')); })
+    .catch(()=>alert('网络错误'));
+}
+
+/* ============================================================
+   启动
+============================================================ */
+resize();
+requestAnimationFrame(loop);
+fetchAnnouncement();
+autoCheckCloudSync();
+</script>
+</body>
+</html>
