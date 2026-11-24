@@ -2698,20 +2698,15 @@ function showSyncPopup(user, rec){
   const btn = document.getElementById('syncBtn');
   btn.disabled = false; btn.textContent = '☁️ 同步到云端并进入游戏';
   btn.onclick = ()=> doCloudSync(user, rec);
-  const cancel = document.getElementById('syncCancel');
-  cancel.textContent = '取消，返回登录';
-  cancel.onclick = ()=>{
-    document.getElementById('syncPopup').classList.add('hidden');
-    currentUser = null; switchAuth('login');
-  };
+  document.getElementById('syncCancel').style.display = 'none';
   el.classList.remove('hidden');
 }
 // 云端连不上时：可重试，或用本地存档先进
 function showCloudFailPopup(user, rec){
   const el = document.getElementById('syncPopup');
   document.getElementById('syncTitle').textContent = '无法连接云端存档';
-  document.getElementById('syncDesc').innerHTML = '云端存档服务暂时不可用。请确认：<br>· 后端 server.js 是最新版（含存档接口）<br>· ⚙️ 设置里的服务器地址正确<br><br>当前地址：<b>'+apiBase()+'</b><br>也可以先用本地存档进入游戏，稍后会自动重试同步。';
-  document.getElementById('syncMsg').textContent = '建议先检查后端，或点击重试';
+  document.getElementById('syncDesc').innerHTML = '云端存档服务暂时不可用。请确认：<br>· 后端 server.js 是最新版（含存档接口）<br>· ⚙️ 设置里的服务器地址正确<br><br>当前地址：<b>'+apiBase()+'</b><br><b style="color:#ffd3d3">必须同步成功后才能进入游戏。</b>';
+  document.getElementById('syncMsg').textContent = '请检查后端后点击重试';
   const btn = document.getElementById('syncBtn');
   btn.disabled = false; btn.textContent = '🔄 重试连接云端';
   btn.onclick = ()=>{
@@ -2729,13 +2724,7 @@ function showCloudFailPopup(user, rec){
       }
     });
   };
-  const cancel = document.getElementById('syncCancel');
-  cancel.textContent = '用本地存档进入游戏';
-  cancel.onclick = ()=>{
-    el.classList.add('hidden');
-    cloudReady = false;
-    connectAndEnter(rec.game);
-  };
+  document.getElementById('syncCancel').style.display = 'none';
   el.classList.remove('hidden');
 }
 // 登录页打开时自动检测本地账号是否缺云端存档
@@ -2763,9 +2752,7 @@ function showAutoSyncPopup(pendingNames, users){
   const btn = document.getElementById('syncBtn');
   btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
   btn.onclick = ()=> doAutoSync(pendingNames, users);
-  const cancel = document.getElementById('syncCancel');
-  cancel.textContent = '取消，稍后同步';
-  cancel.onclick = ()=> el.classList.add('hidden');
+  document.getElementById('syncCancel').style.display = 'none';
   el.classList.remove('hidden');
 }
 function doAutoSync(names, users){
@@ -2773,17 +2760,24 @@ function doAutoSync(names, users){
   const msg = document.getElementById('syncMsg');
   btn.disabled = true; btn.textContent = '☁️ 同步中…';
   msg.textContent = '正在同步 '+names.length+' 个账号…';
-  let done = 0;
+  let done = 0, failed = 0;
   names.forEach((n)=>{
-    cloudUpload(n, users[n].pass, users[n].game, ()=>{
+    cloudUpload(n, users[n].pass, users[n].game, (res)=>{
       done++;
+      if(!(res && res.ok)) failed++;
       if(done === names.length){
-        msg.textContent = '✅ 全部同步完成！';
-        setTimeout(()=>{
-          document.getElementById('syncPopup').classList.add('hidden');
-          btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
-          toast('☁️ 本地存档已全部同步到云端','good');
-        }, 700);
+        if(failed === 0){
+          msg.textContent = '✅ 全部同步完成！';
+          setTimeout(()=>{
+            document.getElementById('syncPopup').classList.add('hidden');
+            btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
+            toast('☁️ 本地存档已全部同步到云端','good');
+          }, 700);
+        } else {
+          msg.textContent = '❌ 有 '+failed+' 个账号同步失败，请检查后端后重试';
+          btn.disabled = false; btn.textContent = '☁️ 重试同步';
+          btn.onclick = ()=> doAutoSync(names, users);
+        }
       }
     });
   });
