@@ -269,7 +269,10 @@
     <div class="sub">服务器与文件</div>
     <div class="field"><label>联机服务器地址</label><input id="setServer" placeholder="wss://666-production-e131c737.up.railway.app" autocomplete="off"></div>
     <button class="btn" onclick="saveServer()">💾 保存服务器地址</button>
+    <button class="btn ghost" onclick="resetServer()">🔄 恢复默认地址</button>
+    <button class="btn ghost" onclick="testCloud()">🔍 测试云端连接</button>
     <button class="btn ghost" onclick="downloadHtml()">⬇️ 下载 HTML 文件</button>
+    <div class="helpbox" style="margin-top:8px;font-size:12px">当前实际使用：<b id="curServer">—</b></div>
     <div class="helpbox" style="margin-top:10px">· 保存后重新登录即可用新地址联机<br>· 下载 HTML 会把当前游戏（含已设置的服务器地址）保存成一个文件，方便分享或部署</div>
     <button class="btn close" onclick="closeSettings()">关闭</button>
   </div>
@@ -341,7 +344,9 @@ function doLogin(){
       setAuthMsg('');
       showSyncPopup(u, rec);
     } else {
-      setAuthMsg('云端存档加载失败：' + (res.error || '网络错误'));
+      // 云端连不上 → 可重试或用本地进入
+      setAuthMsg('');
+      showCloudFailPopup(u, rec);
     }
   });
 }
@@ -2535,6 +2540,8 @@ function addChatLine(name, text){
 /* —— 设置（服务器地址 + 下载 HTML） —— */
 function openSettings(){
   document.getElementById('setServer').value = SERVER_URL;
+  const el = document.getElementById('curServer');
+  if(el) el.textContent = SERVER_URL;
   document.getElementById('settingsModal').classList.remove('hidden');
 }
 function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
@@ -2543,8 +2550,15 @@ function saveServer(){
   if(!v){ alert('服务器地址不能为空'); return; }
   localStorage.setItem('pqdg_server', v);
   SERVER_URL = v;
-  alert('服务器地址已保存，重新登录后生效');
+  const el = document.getElementById('curServer');
+  if(el) el.textContent = SERVER_URL;
+  alert('服务器地址已保存：\n' + v + '\n\n重新登录后生效');
   closeSettings();
+}
+function resetServer(){
+  localStorage.removeItem('pqdg_server');
+  alert('已清除浏览器里保存的旧地址，恢复默认：\nwss://666-production-e131c737.up.railway.app\n\n页面将刷新');
+  location.reload();
 }
 function downloadHtml(){
   let html;
@@ -2558,6 +2572,23 @@ function downloadHtml(){
   document.body.appendChild(a);
   a.click();
   setTimeout(()=>{ a.remove(); URL.revokeObjectURL(a.href); }, 200);
+}
+function testCloud(){
+  const url = apiBase() + '/api/save?user=__ping__&pass=test';
+  fetch(url, {cache:'no-store'})
+    .then(r => r.text().then(txt => ({ status: r.status, txt })))
+    .then(({status, txt}) => {
+      let j = null; try { j = JSON.parse(txt); } catch(e) {}
+      if(j && typeof j.ok !== 'undefined'){
+        alert('✅ 云端连接正常！\n后端已是最新版，存档接口可用。\n\n请求：' + url + '\n返回：' + txt.slice(0, 100));
+      } else {
+        alert('❌ 能连上服务器，但后端还是旧版（没有存档接口 /api/save）。\n\n快到 Railway 重新部署最新的 server.js 就行！\n\n请求：' + url + '\n返回内容：' + txt.slice(0, 120));
+      }
+    })
+    .catch(err => {
+      alert('❌ 连不上服务器。\n\n请求地址：' + url + '\n错误：' + err.message +
+        '\n\n请检查：\n1. Railway 服务是否在运行（Active）\n2. 域名是否正确\n3. ⚙️ 设置里的服务器地址是否对\n（如果是跨域/CORS 问题，也可能是浏览器拦截）');
+    });
 }
 document.getElementById('settingsModal').addEventListener('click', e=>{ if(e.target.id==='settingsModal') closeSettings(); });
 
@@ -2667,9 +2698,43 @@ function showSyncPopup(user, rec){
   const btn = document.getElementById('syncBtn');
   btn.disabled = false; btn.textContent = '☁️ 同步到云端并进入游戏';
   btn.onclick = ()=> doCloudSync(user, rec);
-  document.getElementById('syncCancel').onclick = ()=>{
+  const cancel = document.getElementById('syncCancel');
+  cancel.textContent = '取消，返回登录';
+  cancel.onclick = ()=>{
     document.getElementById('syncPopup').classList.add('hidden');
     currentUser = null; switchAuth('login');
+  };
+  el.classList.remove('hidden');
+}
+// 云端连不上时：可重试，或用本地存档先进
+function showCloudFailPopup(user, rec){
+  const el = document.getElementById('syncPopup');
+  document.getElementById('syncTitle').textContent = '无法连接云端存档';
+  document.getElementById('syncDesc').innerHTML = '云端存档服务暂时不可用。请确认：<br>· 后端 server.js 是最新版（含存档接口）<br>· ⚙️ 设置里的服务器地址正确<br><br>当前地址：<b>'+apiBase()+'</b><br>也可以先用本地存档进入游戏，稍后会自动重试同步。';
+  document.getElementById('syncMsg').textContent = '建议先检查后端，或点击重试';
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = false; btn.textContent = '🔄 重试连接云端';
+  btn.onclick = ()=>{
+    btn.disabled = true; btn.textContent = '正在重试…';
+    cloudLoad(user, rec.pass, (res)=>{
+      if(res.ok && res.save){
+        el.classList.add('hidden'); cloudReady = true;
+        rec.game = res.save; const us = loadUsers(); us[user] = rec; saveUsers(us);
+        connectAndEnter(rec.game);
+      } else if(res.ok && res.save === null){
+        el.classList.add('hidden'); showSyncPopup(user, rec);
+      } else {
+        btn.disabled = false; btn.textContent = '🔄 重试连接云端';
+        document.getElementById('syncMsg').textContent = '仍然失败，请检查后端是否已部署最新版 / 地址是否正确';
+      }
+    });
+  };
+  const cancel = document.getElementById('syncCancel');
+  cancel.textContent = '用本地存档进入游戏';
+  cancel.onclick = ()=>{
+    el.classList.add('hidden');
+    cloudReady = false;
+    connectAndEnter(rec.game);
   };
   el.classList.remove('hidden');
 }
@@ -2698,7 +2763,9 @@ function showAutoSyncPopup(pendingNames, users){
   const btn = document.getElementById('syncBtn');
   btn.disabled = false; btn.textContent = '☁️ 同步全部并继续';
   btn.onclick = ()=> doAutoSync(pendingNames, users);
-  document.getElementById('syncCancel').onclick = ()=> el.classList.add('hidden');
+  const cancel = document.getElementById('syncCancel');
+  cancel.textContent = '取消，稍后同步';
+  cancel.onclick = ()=> el.classList.add('hidden');
   el.classList.remove('hidden');
 }
 function doAutoSync(names, users){
